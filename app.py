@@ -485,10 +485,11 @@ def main():
     # ==========================================
     # PESTAÑAS PRINCIPALES DE LA APLICACIÓN
     # ==========================================
-    tab_chat, tab_explorador, tab_config = st.tabs([
+    tab_chat, tab_explorador, tab_config, tab_mcp = st.tabs([
         "💬 Chatbot Consultor",
         "📊 Explorador de Datos y Fichas",
-        "⚙️ Tabla SQLite 'Configuraciones'"
+        "⚙️ Tabla SQLite 'Configuraciones'",
+        "🔌 Servidor MCP"
     ])
 
     # ------------------------------------------
@@ -647,6 +648,97 @@ def main():
             st.dataframe(df_cfg, use_container_width=True, hide_index=True)
         else:
             st.info("No hay registros en la tabla configuraciones.")
+
+    # ------------------------------------------
+    # PESTAÑA 4: SERVIDOR MCP (MODEL CONTEXT PROTOCOL)
+    # ------------------------------------------
+    with tab_mcp:
+        st.subheader("🔌 Servidor MCP (Model Context Protocol)")
+        st.markdown(
+            "El servidor MCP expone las herramientas `consultar_sql` y `buscar_texto` mediante el estándar "
+            "de la industria **Model Context Protocol (MCP)** para conectar bases de datos con clientes de Inteligencia Artificial: "
+            "**Google Gemini**, **Claude Desktop**, **Cursor IDE** y **Windsurf**."
+        )
+
+        col_st1, col_st2 = st.columns([1, 1])
+        with col_st1:
+            st.markdown("""
+            <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 10px; padding: 16px; margin-bottom: 16px;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                    <span style="font-size: 1.2rem;">🟢</span>
+                    <strong style="color: #166534; font-size: 1rem;">Servidor MCP Listo y Disponible</strong>
+                </div>
+                <div style="font-size: 0.85rem; color: #15803D; line-height: 1.5;">
+                    Módulo: <code>src/mcp_server.py</code> · Transporte: <b>stdio</b> estándar.<br>
+                    <b>Auto-levantamiento:</b> Los clientes MCP (Cursor, Claude Desktop, o scripts) levantan e interactúan automáticamente con el servidor como proceso hijo sin necesidad de abrir terminales adicionales.
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with col_st2:
+            st.markdown("""
+            <div style="background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 10px; padding: 16px; margin-bottom: 16px;">
+                <strong style="color: #1D4ED8; font-size: 0.95rem;">🛠️ Herramientas Registradas en el MCP:</strong>
+                <ul style="font-size: 0.85rem; color: #1E40AF; margin: 6px 0 0 0; padding-left: 20px;">
+                    <li><code>consultar_sql(query: str)</code>: Consultas SELECT analíticas sobre SQLite.</li>
+                    <li><code>buscar_texto(terminos_busqueda: str)</code>: Búsqueda léxica y semántica en índice virtual FTS5.</li>
+                </ul>
+            </div>
+            """, unsafe_allow_html=True)
+
+        ruta_mcp_abs = str((BASE_DIR / "src" / "mcp_server.py").resolve()).replace("\\", "\\\\")
+        python_exe = sys.executable.replace("\\", "\\\\")
+
+        config_mcp_dict = {
+            "mcpServers": {
+                "procesa-consultores": {
+                    "command": python_exe,
+                    "args": [ruta_mcp_abs]
+                }
+            }
+        }
+        config_mcp_str = json.dumps(config_mcp_dict, indent=2)
+
+        st.markdown("#### 📋 Configuración para Claude Desktop, Cursor y Windsurf")
+        st.caption("Copia y pega este bloque JSON en tu archivo de configuración del cliente MCP:")
+        st.code(config_mcp_str, language="json")
+
+        st.caption("📁 **Ruta en Windows para Claude Desktop:** `%APPDATA%\\Claude\\claude_desktop_config.json`")
+        st.caption("📁 **Ruta en Cursor / Windsurf:** `.cursor/mcp.json` o en Configuración > Features > MCP.")
+
+        st.markdown("---")
+        st.markdown("#### 🧪 Prueba de Diagnóstico MCP en Vivo")
+        st.caption("Ejecuta una verificación de extremo a extremo a través del protocolo MCP para confirmar la comunicación:")
+
+        if st.button("🚀 Ejecutar Diagnóstico MCP en Vivo"):
+            with st.spinner("Conectando con el servidor MCP y ejecutando llamadas de prueba..."):
+                try:
+                    import asyncio
+                    from mcp.client.session import ClientSession
+                    from mcp.client.stdio import StdioServerParameters, stdio_client
+
+                    async def _diagnostico():
+                        params = StdioServerParameters(
+                            command=sys.executable,
+                            args=[str(BASE_DIR / "src" / "mcp_server.py")],
+                            env=dict(os.environ),
+                        )
+                        async with stdio_client(params) as (read, write):
+                            async with ClientSession(read, write) as session:
+                                await session.initialize()
+                                tools_resp = await session.list_tools()
+                                res_sql = await session.call_tool(
+                                    "consultar_sql",
+                                    {"query": "SELECT codigo_proyecto, cliente, estado FROM proyectos ORDER BY codigo_proyecto;"}
+                                )
+                                return [t.name for t in tools_resp.tools], res_sql.content[0].text if res_sql.content else ""
+
+                    herramientas, resultado_sql = asyncio.run(_diagnostico())
+                    st.success(f"✅ Protocolo MCP 100% operativo. Herramientas detectadas: `{herramientas}`")
+                    st.markdown("**Resultado obtenido vía MCP:**")
+                    st.markdown(resultado_sql)
+                except Exception as e:
+                    st.error(f"Error al verificar servidor MCP: {e}")
 
 
 if __name__ == "__main__":

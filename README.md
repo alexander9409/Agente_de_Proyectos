@@ -216,14 +216,67 @@ Consultor > salir
 👋 Sesión finalizada. ¡Hasta pronto!
 ```
 
+### C. Servidor MCP (Model Context Protocol) & Integración Multi-Cliente
+
+El proyecto incluye una implementación nativa de **Model Context Protocol (MCP)** en [`src/mcp_server.py`](file:///c:/Users/edwal/Downloads/Prueba%20Valor/Agente_de_Proyectos/src/mcp_server.py), permitiendo que cualquier cliente de IA compatible consuma las herramientas `consultar_sql` y `buscar_texto` como extensiones nativas.
+
+#### 🔄 ¿Cómo funciona el Auto-Levantamiento? (Zero-Config / Sin Múltiples Instancias)
+En la arquitectura oficial de MCP sobre transporte estándar `stdio` (entrada/salida estándar), **los clientes son los encargados de levantar y gestionar el ciclo de vida del servidor de manera 100% automática**:
+- **Sin puertos ocupados:** No se abren puertos TCP ni servidores HTTP que puedan colisionar con Streamlit o servicios locales.
+- **Sin procesos huérfanos:** Cuando abres **Claude Desktop**, **Cursor IDE** o ejecutas el script de prueba, el cliente inicia `python src/mcp_server.py` como un subproceso hijo en segundo plano. Cuando el cliente se cierra o la consulta concluye, el servidor MCP se apaga de forma limpia y transparente.
+- **Conexión en Streamlit:** La aplicación web incluye la pestaña **`🔌 Servidor MCP`**, permitiendo ejecutar diagnósticos en vivo y copiar las rutas absolutas configuradas para tu entorno.
+
+#### 1. Probar con el Script Cliente de Google Gemini (`test_mcp_client.py`)
+Puedes verificar la interacción completa entre Gemini y el servidor MCP ejecutando:
+```bash
+python test_mcp_client.py "¿Cuáles son los 4 proyectos y qué sectores tienen?"
+```
+
+**Flujo de ejecución:**
+1. Inicia el subproceso del servidor MCP (`src/mcp_server.py`) mediante transporte `stdio`.
+2. Descubre dinámicamente las herramientas expuestas (`consultar_sql`, `buscar_texto`).
+3. Envía el prompt al SDK oficial de **Google Gemini** vinculando las herramientas MCP.
+4. Gemini decide qué herramienta utilizar, ejecuta el Tool Call a través del protocolo MCP, recibe las filas de SQLite y sintetiza la respuesta final.
+
+#### 2. Configuración en Claude Desktop
+Añade la siguiente entrada en tu archivo de configuración (`%APPDATA%\Claude\claude_desktop_config.json` en Windows o `~/Library/Application Support/Claude/claude_desktop_config.json` en macOS):
+```json
+{
+  "mcpServers": {
+    "procesa-consultores": {
+      "command": "python",
+      "args": [
+        "c:\\Users\\edwal\\Downloads\\Prueba Valor\\Agente_de_Proyectos\\src\\mcp_server.py"
+      ]
+    }
+  }
+}
+```
+
+#### 3. Configuración en Cursor IDE o Windsurf
+Crea o edita el archivo `.cursor/mcp.json` en la raíz de tu proyecto o agrégalo en *Cursor Settings > Features > MCP*:
+```json
+{
+  "mcpServers": {
+    "procesa-consultores": {
+      "command": "python",
+      "args": [
+        "c:\\Users\\edwal\\Downloads\\Prueba Valor\\Agente_de_Proyectos\\src\\mcp_server.py"
+      ]
+    }
+  }
+}
+```
+Al reiniciar el editor, aparecerá el ícono del martillo/herramientas 🛠️ con `consultar_sql` y `buscar_texto` activas para que el asistente consulte la base de datos SQLite en lenguaje natural.
+
 ---
 
 ## 7. 🧪 Suite de Pruebas Automatizadas (Pytest)
 
-Ejecuta la batería de pruebas para certificar la integridad de los datos, funcionamiento de herramientas, respuestas del agente y validación anti-alucinación:
+Ejecuta la batería completa de 14 pruebas automatizadas (integridad relacional, anti-alucinaciones, herramientas y protocolo MCP):
 
 ```bash
-python -m pytest tests/test_agent.py -v
+python -m pytest tests/ -v
 ```
 
 ### Casos de Prueba Incluidos:
@@ -231,9 +284,16 @@ python -m pytest tests/test_agent.py -v
 2. `test_exactitud_kpi_oee_plasticos`: Verifica OEE (Línea base 58%, Resultado 71%, Cumplido) y citación del informe.
 3. `test_estado_no_cumplido_proveedores_la_canasta`: Valida el estado "No cumplido" para integración de proveedores.
 4. `test_reduccion_tiempo_espera_clinica_santa_lucia`: Valida reducción oficial al 24% en tiempos de espera de consulta externa.
-5. `test_validacion_anti_alucinacion_cliente_inexistente`: Consulta sobre "Banco Pichincha" valida la respuesta exacta: *"La información consultada no se encuentra disponible en los informes de proyectos registrados."*
+5. `test_validacion_anti_alucinacion_cliente_inexistente`: Consulta sobre cliente inexistente valida respuesta estándar.
 6. `test_seguridad_sql_rechaza_escritura`: Comprueba el rechazo de sentencias `DROP`, `DELETE` o `INSERT`.
 7. `test_persistencia_configuraciones`: Comprueba la persistencia y lectura en la tabla `configuraciones`.
+8. `test_linea_base_paradas_64h_prevalece_sobre_anexo`: Comprueba prevalencia de la tabla oficial de resultados (64 h/mes).
+9. `test_no_atribuibilidad_colocacion_horizonte_andino`: Comprueba no atribuibilidad del +9% en colocación.
+10. `test_distincion_cerrado_con_pendientes_vs_cerrados`: Comprueba distinción de estado "Cerrado con pendientes".
+11. `test_alcance_excluido_emergencia_santa_lucia`: Valida declaración formal de exclusión de Emergencias y Quirófanos.
+12. `test_anti_alucinacion_honorarios_no_documentados`: Valida cero alucinación ante datos financieros no documentados.
+13. `test_mcp_server_tools_registration`: Valida el inicio del servidor MCP y registro de `consultar_sql` y `buscar_texto`.
+14. `test_mcp_server_tool_execution`: Valida la ejecución y retorno de queries sobre SQLite a través del protocolo MCP.
 
 ---
 
