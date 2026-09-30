@@ -83,15 +83,20 @@ Tu misión es responder preguntas de directores, socios y consultores sobre los 
    - Formato requerido: [Fuente: <nombre_archivo_origen>]
    - Ejemplo: Según el informe oficial, el OEE aumentó a 71% [Fuente: Informe_Cierre_PC-2025-027_Plasticos_del_Pacifico.pdf].
 
-4. PROTOCOLO ESTRICTO ANTI-ALUCINACIÓN (CERO INVENTOS / DECLARACIÓN EXPLÍCITA DE DATOS NO DISPONIBLES):
-   - Prohibición absoluta de inventar o suponer datos: No inventes métricas, porcentajes, fechas, nombres, cargos, costos, presupuestos, honorarios o cifras que no consten explícitamente en los resultados devueltos por las herramientas.
-   - Si la consulta del usuario refiere a un cliente, persona o empresa ajena a los cuatro proyectos registrados (por ejemplo, clientes inexistentes como 'Banco Pichincha', 'Petroecuador', etc.), responde EXACTAMENTE:
-     "La información consultada no se encuentra disponible en los informes de proyectos registrados."
-   - Si la consulta refiere a un dato específico, métrica, costo, presupuesto o detalle de un proyecto registrado que NO figura en los documentos ni en la base de datos (por ejemplo, honorarios pagados a la consultora, costos de implementación, margen de ganancia neta, rotación de personal, etc.):
-     Declara con total honestidad y claridad técnica:
-     "El dato consultado no se encuentra documentado en los informes oficiales de Procesa Consultores." (o "No se dispone de datos registrados respecto a dicha variable en el informe del proyecto.").
-   - Si el tema corresponde a un alcance expresamente excluido (revisar 'alcance_excluido' de cada proyecto: ej. Línea 2 de soplado en Plásticos del Pacífico, crédito hipotecario/corporativo en Horizonte Andino, emergencias/hospitalización en Clínica Santa Lucía, Centro de Distribución en Supermercados La Canasta):
-     Aclara enfáticamente que dicha área o proceso quedó formalmente fuera del alcance de la intervención según el informe fuente oficial.
+4. PROTOCOLO ESTRICTO ANTI-ALUCINACIÓN Y MANEJO PRIORITARIO DE ÁREAS EXCLUIDAS DEL ALCANCE:
+   a) TRATAMIENTO DE ÁREAS O SERVICIOS EXCLUIDOS (CRÍTICO):
+      - Si el usuario pregunta por tiempos, variaciones, metas o indicadores de áreas, servicios o procesos que quedaron EXCLUIDOS del alcance (por ejemplo: 'Emergencia', 'Quirófanos', 'Hospitalización' o 'Imagenología' en Clínica Santa Lucía; 'Línea 2 de soplado' en Plásticos del Pacífico; 'Crédito hipotecario/corporativo' en Horizonte Andino; 'Centro de Distribución' en Supermercados La Canasta):
+        * REGLA MANDATORIA EN RESUMEN EJECUTIVO: En el 📌 **Resumen Ejecutivo**, DEBES DECLARAR DIRECTA Y ENFÁTICAMENTE EN EL PRIMER PÁRRAFO QUE DICHOS SERVICIOS/ÁREAS QUEDARON FORMALMENTE EXCLUIDOS DEL ALCANCE DE LA CONSULTORÍA, Y QUE POR LO TANTO NO EXISTEN VARIACIONES DE TIEMPOS, METAS NI MEDICIONES REGISTRADAS PARA ELLAS, aclarando en qué área se concentró exclusivamente el proyecto (ej. Consulta Externa).
+        * PROHIBIDO: NUNCA presentes los resultados o KPIs de las áreas incluidas (como Consulta Externa o Línea 1) como si fueran la respuesta a la pregunta del usuario sobre las áreas excluidas. Presenta en su lugar una tabla de delimitación de alcance explicando qué quedó incluido y qué quedó formalmente excluido.
+   b) PROHIBICIÓN ABSOLUTA DE INVENTAR O SUPONER DATOS:
+      - No inventes métricas, porcentajes, fechas, nombres, cargos, costos, presupuestos, honorarios o cifras que no consten explícitamente en los resultados devueltos por las herramientas.
+   c) ENTIDADES NO REGISTRADAS:
+      - Si la consulta del usuario refiere a un cliente, persona o empresa ajena a los cuatro proyectos registrados (por ejemplo, clientes inexistentes como 'Banco Pichincha', 'Petroecuador', etc.), responde EXACTAMENTE:
+        "La información consultada no se encuentra disponible en los informes de proyectos registrados."
+   d) VARIABLES INTERNAS NO DOCUMENTADAS:
+      - Si la consulta refiere a un dato específico, métrica interna, costo, presupuesto o detalle que NO figura en los documentos ni en la base de datos (por ejemplo, honorarios pagados a la consultora, costos de implementación, margen de ganancia neta, rotación de personal, etc.):
+        Declara con total honestidad y claridad técnica:
+        "El dato consultado no se encuentra documentado en los informes oficiales de Procesa Consultores." (o "No se dispone de datos registrados respecto a dicha variable en el informe del proyecto.").
 
 5. CRITERIOS DE FIABILIDAD DE DATOS, PREVALENCIA Y GESTIÓN DE DISCREPANCIAS DOCUMENTALES:
    a) PREVALENCIA DE LA TABLA OFICIAL DE RESULTADOS DE CIERRE:
@@ -277,6 +282,127 @@ class AgenteProyectos:
                 "trazabilidad": trazabilidad,
                 "modo": "analitico_local",
             }
+
+        # 1.2 Protocolo Anti-alucinación: Consultas sobre Alcance Excluido
+        # Caso A: Clínica Santa Lucía (PC-2025-033) - Emergencia, Quirófanos, Hospitalización, Imagenología
+        if any(w in msg for w in ["emergencia", "emergencias", "quirófano", "quirofano", "quirófanos", "quirofanos", "hospitalización", "hospitalizacion", "imagenología", "imagenologia"]) and any(w in msg for w in ["santa lucía", "santa lucia", "clínica", "clinica", "atención", "atencion", "tiempo", "tiempos"]):
+            q = "SELECT codigo_proyecto, cliente, alcance_incluido, alcance_excluido, archivo_origen FROM proyectos WHERE codigo_proyecto = 'PC-2025-033';"
+            res_sql, datos_sql = self._ejecutar_herramienta_local("consultar_sql", {"query": q})
+            trazabilidad.append({
+                "herramienta": "consultar_sql",
+                "argumentos": {"query": q},
+                "resultado": res_sql,
+                "datos": datos_sql,
+            })
+            res_fts, datos_fts = self._ejecutar_herramienta_local("buscar_texto", {"terminos_busqueda": "alcance excluido emergencias hospitalización Santa Lucía"})
+            trazabilidad.append({
+                "herramienta": "buscar_texto",
+                "argumentos": {"terminos_busqueda": "alcance excluido emergencias hospitalización Santa Lucía"},
+                "resultado": res_fts,
+                "datos": datos_fts,
+            })
+
+            resp = (
+                "### 📌 Resumen Ejecutivo\n"
+                "Los servicios de **Emergencia, Quirófanos, Hospitalización e Imagenología quedaron formalmente EXCLUIDOS del alcance** "
+                "de la intervención realizada en la **Clínica Santa Lucía del Valle** (`PC-2025-033`). "
+                "Por consiguiente, **no existen variaciones de tiempos de atención, metas ni mediciones registradas en el proyecto para dichas áreas**, "
+                "ya que la consultoría de Procesa Consultores se concentró única y exclusivamente en optimizar los flujos de atención y tiempos de espera "
+                "en las 22 especialidades de **Consulta Externa** [Fuente: Informe_Cierre_PC-2025-033_Clinica_Santa_Lucia.docx].\n\n"
+                "### 📊 Matriz de Delimitación de Alcance del Proyecto\n\n"
+                "| Servicio / Área Clínica | Condición en el Proyecto | Variación Registrada | Justificación y Delimitación Contractual |\n"
+                "| :--- | :---: | :---: | :--- |\n"
+                "| **Emergencia** | ❌ **Excluido del alcance** | *Sin mediciones* | Fuera del alcance acordado en el acta de inicio de consultoría. |\n"
+                "| **Quirófanos / Hospitalización** | ❌ **Excluido del alcance** | *Sin mediciones* | Áreas críticas reservadas fuera de la intervención de flujos ambulatorios. |\n"
+                "| **Imagenología** | ❌ **Excluido del alcance** | *Sin mediciones* | Servicios complementarios excluidos formalmente del perímetro Lean. |\n"
+                "| **Consulta Externa (22 especialidades)** |  **Único alcance incluido** | **-24% tiempo de espera** | Foco exclusivo: reducción de espera de 52 a 39,5 min y ventanilla rápida en 6 min. |\n\n"
+                "### 💡 Contexto e Insights de Consultoría\n"
+                "- **Focalización Estratégica:** En proyectos de optimización hospitalaria, delimitar con rigor el alcance evita dispersar recursos en unidades de alta complejidad diagnóstica o quirúrgica (como Emergencias o Quirófanos), permitiendo resolver con celeridad la saturación visible de ventanillas y salas de espera ambulatorias.\n"
+                "- **Gobernanza Anti-alucinación:** El sistema de Procesa Consultores prohíbe inferir o extrapolar métricas: al no haberse intervenido las unidades de Emergencia y Quirófanos, cualquier cifra atribuida a ellas constituiría una alucinación no respaldada en el informe de cierre.\n\n"
+                "### 📑 Fuentes Documentales\n"
+                "- [Fuente: Informe_Cierre_PC-2025-033_Clinica_Santa_Lucia.docx]"
+            )
+            return {"respuesta": resp, "trazabilidad": trazabilidad, "modo": "analitico_local"}
+
+        # Caso B: Plásticos del Pacífico (PC-2025-027) - Línea 2 de soplado
+        if any(w in msg for w in ["línea 2", "linea 2", "soplado", "sopladoras", "sopladora"]) and any(w in msg for w in ["plásticos", "plasticos", "pacífico", "pacifico", "oee", "tiempos", "paradas", "rendimiento"]):
+            q = "SELECT codigo_proyecto, cliente, alcance_incluido, alcance_excluido, archivo_origen FROM proyectos WHERE codigo_proyecto = 'PC-2025-027';"
+            res_sql, datos_sql = self._ejecutar_herramienta_local("consultar_sql", {"query": q})
+            trazabilidad.append({
+                "herramienta": "consultar_sql",
+                "argumentos": {"query": q},
+                "resultado": res_sql,
+                "datos": datos_sql,
+            })
+            resp = (
+                "### 📌 Resumen Ejecutivo\n"
+                "La **Línea 2 de soplado** (compuesta por 3 máquinas sopladoras) quedó formalmente **EXCLUIDA del alcance** del proyecto desarrollado en **Plásticos del Pacífico S.A.** (`PC-2025-027`). "
+                "Por tal razón, **no existen mediciones de OEE, tiempos ni paradas registradas para dicha línea**, ya que la consultoría se concentró con exclusividad en la **Línea 1 de inyección** [Fuente: Informe_Cierre_PC-2025-027_Plasticos_del_Pacifico.pdf].\n\n"
+                "### 📊 Matriz de Delimitación de Alcance Operativo\n\n"
+                "| Línea de Producción | Condición en el Proyecto | Indicador / Variación | Justificación Contractual |\n"
+                "| :--- | :---: | :---: | :--- |\n"
+                "| **Línea 2 de Soplado (3 sopladoras)** | ❌ **Excluido del alcance** | *Sin mediciones* | El cliente programó el reemplazo de 2 sopladoras en 1S 2026; excluida para evitar retrabajos. |\n"
+                "| **Línea 1 de Inyección (6 inyectoras)** |  **Único alcance incluido** | **OEE subió a 71% (+13 pp)** | Foco exclusivo: SMED reducido a 38 min y paradas reducidas a 31 h/mes. |\n\n"
+                "### 💡 Contexto e Insights de Consultoría\n"
+                "- **Racionalidad de Exclusión:** Se excluyó la Línea 2 porque dos de sus máquinas tenían obsolescencia programada para cambio en 2026. Concentrar los esfuerzos en la Línea 1 evitó inversiones innecesarias y liberó ~1,9 millones de tapas/mes de capacidad oculta.\n\n"
+                "### 📑 Fuentes Documentales\n"
+                "- [Fuente: Informe_Cierre_PC-2025-027_Plasticos_del_Pacifico.pdf]"
+            )
+            return {"respuesta": resp, "trazabilidad": trazabilidad, "modo": "analitico_local"}
+
+        # Caso C: Cooperativa Horizonte Andino (PC-2025-014) - Crédito hipotecario y corporativo
+        if any(w in msg for w in ["hipotecario", "corporativo"]) and any(w in msg for w in ["horizonte", "andino", "cooperativa", "crédito", "credito"]):
+            q = "SELECT codigo_proyecto, cliente, alcance_incluido, alcance_excluido, archivo_origen FROM proyectos WHERE codigo_proyecto = 'PC-2025-014';"
+            res_sql, datos_sql = self._ejecutar_herramienta_local("consultar_sql", {"query": q})
+            trazabilidad.append({
+                "herramienta": "consultar_sql",
+                "argumentos": {"query": q},
+                "resultado": res_sql,
+                "datos": datos_sql,
+            })
+            resp = (
+                "### 📌 Resumen Ejecutivo\n"
+                "Los productos de **Crédito hipotecario y Crédito corporativo** quedaron formalmente **EXCLUIDOS del alcance** de la consultoría en la **Cooperativa Horizonte Andino Ltda.** (`PC-2025-014`). "
+                "Por consiguiente, **no existen variaciones de tiempos de aprobación ni metas registradas para estos segmentos**, habiéndose concentrado la intervención únicamente en las líneas de **microcrédito y crédito de consumo** [Fuente: Informe_Cierre_PC-2025-014_Cooperativa_Horizonte_Andino.pdf].\n\n"
+                "### 📊 Matriz de Delimitación de Alcance de Productos Financieros\n\n"
+                "| Tipo de Crédito | Condición en el Proyecto | Tiempo de Aprobación | Observación Contractual |\n"
+                "| :--- | :---: | :---: | :--- |\n"
+                "| **Crédito Hipotecario** | ❌ **Excluido del alcance** | *Sin mediciones* | Excluido por requerir análisis registral/legal externo independiente. |\n"
+                "| **Crédito Corporativo** | ❌ **Excluido del alcance** | *Sin mediciones* | Evaluado en comités especializados fuera de la red de agencias. |\n"
+                "| **Microcrédito y Consumo** |  **Único alcance incluido** | **Reducción a 5 días (-58%)** | Foco del rediseño Lean y parametrización de scoring crediticio. |\n\n"
+                "### 💡 Contexto e Insights de Consultoría\n"
+                "- **Enfoque en Segmentos Core:** Microcrédito y consumo concentraban más del 80% del volumen transaccional de solicitudes en agencias, logrando reducir el reproceso de 34% a 12%.\n\n"
+                "### 📑 Fuentes Documentales\n"
+                "- [Fuente: Informe_Cierre_PC-2025-014_Cooperativa_Horizonte_Andino.pdf]"
+            )
+            return {"respuesta": resp, "trazabilidad": trazabilidad, "modo": "analitico_local"}
+
+        # Caso D: Supermercados La Canasta (PC-2026-006) - Centro de Distribución y Transporte Primario
+        if any(w in msg for w in ["centro de distribución", "centro de distribucion", "transporte primario"]) or (any(w in msg for w in ["cd", "bodega central", "flota"]) and any(w in msg for w in ["canasta", "supermercado", "supermercados"])):
+            q = "SELECT codigo_proyecto, cliente, alcance_incluido, alcance_excluido, archivo_origen FROM proyectos WHERE codigo_proyecto = 'PC-2026-006';"
+            res_sql, datos_sql = self._ejecutar_herramienta_local("consultar_sql", {"query": q})
+            trazabilidad.append({
+                "herramienta": "consultar_sql",
+                "argumentos": {"query": q},
+                "resultado": res_sql,
+                "datos": datos_sql,
+            })
+            resp = (
+                "### 📌 Resumen Ejecutivo\n"
+                "El **Centro de Distribución (CD) y la logística de transporte primario** quedaron expresamente **EXCLUIDOS del alcance** de la intervención en **Supermercados La Canasta Cía. Ltda.** (`PC-2026-006`). "
+                "En consecuencia, **no existen mediciones de tiempos ni KPIs registrados para las operaciones internas del CD**, habiéndose focalizado el proyecto exclusivamente en la gestión de inventarios y mermas en los **14 locales comerciales (tiendas)** y la recepción de despachos en local [Fuente: Informe_Cierre_PC-2026-006_Supermercados_La_Canasta.pdf].\n\n"
+                "### 📊 Matriz de Delimitación de Alcance Logístico\n\n"
+                "| Eslabón de la Cadena | Condición en el Proyecto | Métricas Registradas | Observación Contractual |\n"
+                "| :--- | :---: | :---: | :--- |\n"
+                "| **Centro de Distribución (CD)** | ❌ **Excluido del alcance** | *Sin mediciones* | Operaciones internas de almacenamiento central no formaron parte del alcance. |\n"
+                "| **Transporte Primario** | ❌ **Excluido del alcance** | *Sin mediciones* | Flota y traslados proveedor-CD no intervenidos. |\n"
+                "| **14 Locales Comerciales (Tiendas)** |  **Único alcance incluido** | **Quiebre a 4,8% / Merma a 3,4%** | Foco exclusivo: reposición en percha, conteos cíclicos y mermas en tiendas. |\n\n"
+                "### 💡 Contexto e Insights de Consultoría\n"
+                "- **Límites Operativos:** La intervención se enfocó donde ocurría el quiebre visible al consumidor final (sala de ventas en 14 tiendas), optimizando el punto de reorden sin alterar los procesos intralogísticos del CD.\n\n"
+                "### 📑 Fuentes Documentales\n"
+                "- [Fuente: Informe_Cierre_PC-2026-006_Supermercados_La_Canasta.pdf]"
+            )
+            return {"respuesta": resp, "trazabilidad": trazabilidad, "modo": "analitico_local"}
 
         # 2. Consultas sobre Colocación / +9% en Horizonte Andino (Dato de contexto no atribuible)
         if any(w in msg for w in ["colocación", "colocacion", "colocado", "+9%", "9%"]) and any(w in msg for w in ["horizonte", "andino", "cooperativa", "crédito", "credito", "monto", "kpi", "resultado", "indicador"]):

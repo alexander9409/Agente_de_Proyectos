@@ -191,3 +191,30 @@ def test_distincion_cerrado_con_pendientes_vs_cerrados():
     assert "Cerrado con pendientes" in texto
     assert "Informe_Cierre_PC-2026-006_Supermercados_La_Canasta.pdf" in texto
 
+
+def test_alcance_excluido_emergencia_santa_lucia():
+    """Valida que ante consultas de Emergencia y Quirófanos en Santa Lucía, se declare formalmente su exclusión."""
+    agente = AgenteProyectos()
+    pregunta = "¿Cómo variaron los tiempos de atención en la atención de Emergencia y Quirófanos de la Clínica Santa Lucía?"
+    respuesta = agente.responder(pregunta)
+    texto = respuesta["respuesta"]
+
+    # Debe indicar claramente la exclusión del alcance
+    assert "excluido" in texto.lower() or "excluidos" in texto.lower()
+    assert "emergencia" in texto.lower()
+    assert "quirófano" in texto.lower() or "quirofano" in texto.lower() or "hospitalización" in texto.lower()
+    assert "consulta externa" in texto.lower()
+    assert "no existen variaciones" in texto.lower() or "sin mediciones" in texto.lower()
+    assert "Informe_Cierre_PC-2025-033_Clinica_Santa_Lucia.docx" in texto
+
+
+def test_anti_alucinacion_honorarios_no_documentados():
+    """Valida que ante preguntas por variables no documentadas (honorarios/presupuestos de consultoría), se active anti-alucinación."""
+    agente = AgenteProyectos()
+    pregunta = "¿Cuáles fueron los honorarios o presupuesto pagado a la consultora por el proyecto de Clínica Santa Lucía?"
+    respuesta = agente.responder(pregunta)
+    texto = respuesta["respuesta"]
+
+    assert "no se encuentra documentado" in texto.lower() or "no disponible" in texto.lower()
+
+
