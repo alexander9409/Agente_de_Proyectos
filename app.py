@@ -718,10 +718,15 @@ def main():
                     from mcp.client.stdio import StdioServerParameters, stdio_client
 
                     async def _diagnostico():
+                        env_mcp = dict(os.environ)
+                        # Pasar rutas activas de sys.path en PYTHONPATH para compatibilidad con venv y user-site
+                        rutas = [str(BASE_DIR)] + [p for p in sys.path if p and Path(p).exists()]
+                        env_mcp["PYTHONPATH"] = os.pathsep.join(rutas)
+
                         params = StdioServerParameters(
                             command=sys.executable,
                             args=[str(BASE_DIR / "src" / "mcp_server.py")],
-                            env=dict(os.environ),
+                            env=env_mcp,
                         )
                         async with stdio_client(params) as (read, write):
                             async with ClientSession(read, write) as session:
@@ -739,6 +744,15 @@ def main():
                     st.markdown(resultado_sql)
                 except Exception as e:
                     st.error(f"Error al verificar servidor MCP: {e}")
+                    if "No module named 'mcp'" in str(e):
+                        st.info(
+                            "💡 **Solución rápida:** Tu entorno virtual (`venv`) no tiene instalado el paquete `mcp`. "
+                            "Ejecuta en tu terminal de PowerShell:\n\n"
+                            "```powershell\n"
+                            ".\\venv\\Scripts\\pip install mcp\n"
+                            "```\n"
+                            "o con el entorno activado: `pip install mcp`"
+                        )
 
 
 if __name__ == "__main__":
