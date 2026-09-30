@@ -169,31 +169,59 @@ st.markdown("""
         box-shadow: 0 2px 4px rgba(37,99,235,0.08) !important;
     }
 
-    /* Botón principal del sidebar */
-    [data-testid="stSidebar"] .stButton > button {
+    /* Botones primarios (Guardar configuración) */
+    .stButton > button[kind="primary"],
+    .stButton > button[data-testid="baseButton-primary"] {
         background-color: #2563EB !important;
         color: #FFFFFF !important;
         border: 1px solid #1D4ED8 !important;
         font-weight: 600 !important;
     }
-    [data-testid="stSidebar"] .stButton > button:hover {
+    .stButton > button[kind="primary"]:hover,
+    .stButton > button[data-testid="baseButton-primary"]:hover {
         background-color: #1D4ED8 !important;
         color: #FFFFFF !important;
     }
 
-    /* 7. Mensajes de chat */
+    /* 7. Mensajes de chat estilo Gemini / ChatGPT */
     [data-testid="stChatMessage"] {
         background-color: #FFFFFF !important;
         border: 1px solid #E2E8F0 !important;
-        border-radius: 10px !important;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
-        padding: 14px 18px !important;
-        margin-bottom: 12px !important;
+        border-radius: 14px !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02) !important;
+        padding: 16px 22px !important;
+        margin-bottom: 14px !important;
         color: #0F172A !important;
     }
+    /* Burbuja de usuario estilo ChatGPT / Gemini */
     [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) {
-        background-color: #F0F7FF !important;
-        border-color: #BAE6FD !important;
+        background-color: #F8FAFC !important;
+        border: 1px solid #E2E8F0 !important;
+        border-radius: 18px !important;
+        font-weight: 500 !important;
+    }
+
+    /* 7.1 Caja de entrada fija al fondo estilo Gemini / ChatGPT */
+    [data-testid="stChatInput"] {
+        background-color: #FFFFFF !important;
+        border-radius: 28px !important;
+        border: 1.5px solid #CBD5E1 !important;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06) !important;
+        padding: 4px 12px !important;
+        transition: border-color 0.2s, box-shadow 0.2s !important;
+    }
+    [data-testid="stChatInput"]:focus-within {
+        border-color: #2563EB !important;
+        box-shadow: 0 4px 20px rgba(37, 99, 235, 0.15) !important;
+    }
+    [data-testid="stChatInput"] textarea {
+        font-size: 0.95rem !important;
+        color: #0F172A !important;
+    }
+    [data-testid="stBottom"] {
+        background-color: #FFFFFF !important;
+        border-top: 1px solid #F1F5F9 !important;
+        padding-bottom: 8px !important;
     }
 
     /* 8. Badge de fuentes documentales */
@@ -376,6 +404,51 @@ def main():
         col_m3.metric("Lecciones", resumen["lecciones"])
         col_m4.metric("Docs FTS", resumen["fts"])
 
+        # Píldoras de gobernanza y estado del pipeline (movidos a la izquierda para despejar el chat)
+        st.markdown("""
+        <div style="margin-top: 8px; margin-bottom: 6px;">
+            <span class="deal-pill">Auditoría Operativa</span>
+            <span class="deal-pill">Lean & TPM</span>
+            <span class="deal-pill">Cero Alucinaciones</span>
+            <span class="deal-pill">SQLite + FTS5</span>
+        </div>
+        <div style="font-size: 0.76rem; color: #64748B; background: #F8FAFC; padding: 6px 10px; border-radius: 6px; border: 1px solid #E2E8F0; margin-bottom: 4px;">
+            <b>Pipeline:</b> Ingesta (4) ➔ SQLite & FTS5 ➔ Agente IA
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("---")
+        st.subheader("💡 Atajos de Consulta Rápida")
+        st.caption("Preguntas sugeridas del caso de negocio:")
+        with st.expander("📌 Ver 9 consultas sugeridas", expanded=True):
+            if st.button("⏱️ Proyectos ≥ 20 semanas", use_container_width=True):
+                st.session_state.prompt_prellenado = "¿Qué proyectos tuvieron una duración igual o superior a 20 semanas?"
+                st.rerun()
+            if st.button("📈 OEE Plásticos del Pacífico", use_container_width=True):
+                st.session_state.prompt_prellenado = "¿Cuál fue el OEE de Plásticos del Pacífico, su línea base y resultado final?"
+                st.rerun()
+            if st.button("❌ Proveedores La Canasta", use_container_width=True):
+                st.session_state.prompt_prellenado = "¿Se cumplió la integración con proveedores en Supermercados La Canasta y cuál fue la causa?"
+                st.rerun()
+            if st.button("🏥 Espera Clínica Santa Lucía", use_container_width=True):
+                st.session_state.prompt_prellenado = "¿Cuánto se redujo el tiempo total de espera del paciente en Clínica Santa Lucía?"
+                st.rerun()
+            if st.button("👥 Gerentes de Proyecto", use_container_width=True):
+                st.session_state.prompt_prellenado = "¿Quiénes fueron los gerentes de proyecto y qué proyectos lideraron?"
+                st.rerun()
+            if st.button("🛡️ Prueba Anti-Alucinación", use_container_width=True):
+                st.session_state.prompt_prellenado = "¿Qué proyectos se realizaron para Banco Pichincha?"
+                st.rerun()
+            if st.button("🏭 Paradas 64 h/mes (Línea Base)", use_container_width=True):
+                st.session_state.prompt_prellenado = "¿Qué línea base se tomó para las paradas no programadas en Plásticos del Pacífico y por qué prevalece sobre el anexo?"
+                st.rerun()
+            if st.button("🏦 +9% Colocación (No Atribuible)", use_container_width=True):
+                st.session_state.prompt_prellenado = "¿Se debe registrar el +9% de colocación de Cooperativa Horizonte Andino como resultado del proyecto?"
+                st.rerun()
+            if st.button("📋 Cerrados vs Pendientes", use_container_width=True):
+                st.session_state.prompt_prellenado = "¿Cuáles de los proyectos se consideran cerrados y cuál cerró con pendientes?"
+                st.rerun()
+
         st.markdown("---")
         st.subheader("⚙️ Configuración Gemini")
 
@@ -395,7 +468,7 @@ def main():
         temp_actual = config_mgr.temperature
         slider_temp = st.slider("Temperatura", min_value=0.0, max_value=1.0, value=float(temp_actual), step=0.05)
 
-        if st.button("💾 Guardar Configuración", use_container_width=True):
+        if st.button("💾 Guardar Configuración", type="primary", use_container_width=True):
             if input_api_key.strip():
                 config_mgr.set_config("gemini_api_key", input_api_key.strip(), "Clave API de Gemini")
             config_mgr.set_config("model_name", select_model, "Modelo seleccionado")
@@ -433,34 +506,12 @@ def main():
             st.rerun()
 
     # ==========================================
-    # ENCABEZADO Y STEPPER TIPO SAAS CORPORATIVO
+    # ENCABEZADO MINIMALISTA ESTILO SAAS / GEMINI
     # ==========================================
     st.markdown("""
-    <div class="stepper-container">
-        <div class="step-item active">
-            <div class="step-badge active">1</div>
-            <span>Informes Ingeridos (4)</span>
-        </div>
-        <div class="step-divider"></div>
-        <div class="step-item active">
-            <div class="step-badge active">2</div>
-            <span>Base Relacional & FTS5</span>
-        </div>
-        <div class="step-divider"></div>
-        <div class="step-item active">
-            <div class="step-badge active">3</div>
-            <span>Agente Multi-Herramienta</span>
-        </div>
-    </div>
-    <div class="app-header-title">Consultor de Inteligencia Operativa y Proyectos</div>
-    <div class="app-header-subtitle">
-        Módulo: Consultoría de Procesos &nbsp;|&nbsp; Registro: 4 proyectos cerrados &nbsp;·&nbsp; Firma: <b>Procesa Consultores</b>
-    </div>
-    <div style="margin-bottom: 16px;">
-        <span class="deal-pill">Auditoría Operativa</span>
-        <span class="deal-pill">Lean & TPM</span>
-        <span class="deal-pill">Cero Alucinaciones</span>
-        <span class="deal-pill">SQLite + FTS5</span>
+    <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px;">
+        <div class="app-header-title">💼 Consultor de Inteligencia Operativa y Proyectos</div>
+        <div style="font-size: 0.82rem; color: #64748B;">Procesa Consultores &nbsp;·&nbsp; 4 Proyectos &nbsp;·&nbsp; SQLite + FTS5 + Gemini</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -474,86 +525,71 @@ def main():
     ])
 
     # ------------------------------------------
-    # PESTAÑA 1: CHATBOT CONSULTOR
+    # PESTAÑA 1: CHATBOT CONSULTOR (ESTILO GEMINI / CHATGPT)
     # ------------------------------------------
     with tab_chat:
-        st.subheader("Asistente Virtual de Inteligencia de Proyectos")
-        st.markdown(
-            "Bienvenido al consultor inteligente de **Procesa Consultores**. "
-            "Realice preguntas sobre métricas, duraciones, causas de desvío, lecciones aprendidas o metodologías. "
-            "Todas las respuestas combinan un **resumen ejecutivo de negocio**, **matrices comparativas**, **insights operativos** y **citación formal**."
-        )
+        chat_container = st.container()
 
-        # Atajos rápidos de preguntas
-        st.markdown("**Consultas sugeridas para el caso de negocio:**")
-        cols_btn = st.columns(3)
-        if cols_btn[0].button("⏱️ Proyectos ≥ 20 semanas", use_container_width=True):
-            st.session_state.prompt_prellenado = "¿Qué proyectos tuvieron una duración igual o superior a 20 semanas?"
-        if cols_btn[1].button("📈 OEE Plásticos del Pacífico", use_container_width=True):
-            st.session_state.prompt_prellenado = "¿Cuál fue el OEE de Plásticos del Pacífico, su línea base y resultado final?"
-        if cols_btn[2].button("❌ Proveedores La Canasta", use_container_width=True):
-            st.session_state.prompt_prellenado = "¿Se cumplió la integración con proveedores en Supermercados La Canasta y cuál fue la causa?"
+        # Si no hay mensajes, mostrar bienvenida minimalista y espaciosa tipo Gemini
+        if not st.session_state.mensajes:
+            with chat_container:
+                st.markdown("""
+                <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 14px; padding: 36px 24px; margin: 30px auto; text-align: center; max-width: 650px;">
+                    <div style="font-size: 2.4rem; margin-bottom: 10px;">💼</div>
+                    <h3 style="margin: 0 0 10px 0; color: #0F172A; font-weight: 700; font-size: 1.3rem;">
+                        ¿En qué puedo ayudarte hoy sobre los proyectos?
+                    </h3>
+                    <p style="color: #64748B; font-size: 0.92rem; margin-bottom: 18px; line-height: 1.55;">
+                        Consulta métricas oficiales de cierre, duraciones, causas de desvío, lecciones aprendidas o metodologías de <b>Procesa Consultores</b> con rigor analítico y cero alucinaciones.
+                    </p>
+                    <div style="display: inline-block; background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 20px; padding: 7px 18px; font-size: 0.84rem; color: #1D4ED8; font-weight: 500;">
+                        💡 <i>Selecciona una consulta rápida en el menú lateral izquierdo o escribe tu pregunta abajo.</i>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+        else:
+            with chat_container:
+                for mensaje in st.session_state.mensajes:
+                    with st.chat_message(mensaje["rol"], avatar="👤" if mensaje["rol"] == "user" else "🤖"):
+                        if mensaje["rol"] == "assistant":
+                            st.markdown(resaltar_fuentes(mensaje["contenido"]), unsafe_allow_html=True)
+                            trazabilidad = mensaje.get("trazabilidad", [])
+                            renderizar_trazabilidad(trazabilidad)
+                        else:
+                            st.markdown(mensaje["contenido"])
 
-        cols_btn2 = st.columns(3)
-        if cols_btn2[0].button("🏥 Espera Clínica Santa Lucía", use_container_width=True):
-            st.session_state.prompt_prellenado = "¿Cuánto se redujo el tiempo total de espera del paciente en Clínica Santa Lucía?"
-        if cols_btn2[1].button("👥 Gerentes de Proyecto", use_container_width=True):
-            st.session_state.prompt_prellenado = "¿Quiénes fueron los gerentes de proyecto y qué proyectos lideraron?"
-        if cols_btn2[2].button("🛡️ Prueba Anti-Alucinación", use_container_width=True):
-            st.session_state.prompt_prellenado = "¿Qué proyectos se realizaron para Banco Pichincha?"
-
-        cols_btn3 = st.columns(3)
-        if cols_btn3[0].button("🏭 Paradas 64 h/mes (Línea Base)", use_container_width=True):
-            st.session_state.prompt_prellenado = "¿Qué línea base se tomó para las paradas no programadas en Plásticos del Pacífico y por qué prevalece sobre el anexo?"
-        if cols_btn3[1].button("🏦 +9% Colocación (No Atribuible)", use_container_width=True):
-            st.session_state.prompt_prellenado = "¿Se debe registrar el +9% de colocación de Cooperativa Horizonte Andino como resultado del proyecto?"
-        if cols_btn3[2].button("📋 Proyectos Cerrados vs Pendientes", use_container_width=True):
-            st.session_state.prompt_prellenado = "¿Cuáles de los proyectos se consideran cerrados y cuál cerró con pendientes?"
-
-        st.markdown("---")
-
-        # Mostrar historial de conversación
-        for mensaje in st.session_state.mensajes:
-            with st.chat_message(mensaje["rol"], avatar="👤" if mensaje["rol"] == "user" else "🤖"):
-                if mensaje["rol"] == "assistant":
-                    st.markdown(resaltar_fuentes(mensaje["contenido"]), unsafe_allow_html=True)
-                    # Mostrar trazabilidad limpia y sin truncamientos
-                    trazabilidad = mensaje.get("trazabilidad", [])
-                    renderizar_trazabilidad(trazabilidad)
-                else:
-                    st.markdown(mensaje["contenido"])
-
-        # Entrada del usuario (o atajo sugerido)
-        prompt_inicial = st.session_state.pop("prompt_prellenado", None)
+        # Entrada del usuario: SIEMPRE ABAJO, después del contenedor de mensajes
+        prompt_sidebar = st.session_state.pop("prompt_prellenado", None)
         prompt_chat = st.chat_input("Escribe tu consulta sobre los proyectos...")
 
-        pregunta = prompt_inicial or prompt_chat
+        pregunta = prompt_sidebar or prompt_chat
 
         if pregunta:
-            # Mostrar pregunta del usuario
+            # Mostrar la pregunta de inmediato en el contenedor
             st.session_state.mensajes.append({"rol": "user", "contenido": pregunta})
-            with st.chat_message("user", avatar="👤"):
-                st.markdown(pregunta)
+            with chat_container:
+                with st.chat_message("user", avatar="👤"):
+                    st.markdown(pregunta)
 
-            # Generar respuesta con el agente
-            with st.chat_message("assistant", avatar="🤖"):
-                with st.spinner("Analizando base de datos relacional y textos completos..."):
-                    respuesta_dict = st.session_state.agente.responder(pregunta)
-                    texto_resp = respuesta_dict.get("respuesta", "")
-                    traza = respuesta_dict.get("trazabilidad", [])
+                # Generar respuesta con el agente
+                with st.chat_message("assistant", avatar="🤖"):
+                    with st.spinner("Analizando base de datos relacional y textos completos..."):
+                        respuesta_dict = st.session_state.agente.responder(pregunta)
+                        texto_resp = respuesta_dict.get("respuesta", "")
+                        traza = respuesta_dict.get("trazabilidad", [])
+                        st.markdown(resaltar_fuentes(texto_resp), unsafe_allow_html=True)
+                        renderizar_trazabilidad(traza)
 
-                    # Renderizar respuesta formateada
-                    st.markdown(resaltar_fuentes(texto_resp), unsafe_allow_html=True)
-
-                    # Renderizar trazabilidad interactiva completa
-                    renderizar_trazabilidad(traza)
-
-            # Persistir respuesta del asistente
+            # Persistir respuesta del asistente en el historial
             st.session_state.mensajes.append({
                 "rol": "assistant",
                 "contenido": texto_resp,
                 "trazabilidad": traza
             })
+
+            # CRÍTICO: Rerun para que toda la conversación se pinte arriba en orden cronológico
+            # y la caja st.chat_input quede SIEMPRE ABAJO del último mensaje y respuesta
+            st.rerun()
 
     # ------------------------------------------
     # PESTAÑA 2: EXPLORADOR DE BASE DE DATOS Y FICHAS
