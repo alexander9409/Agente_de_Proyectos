@@ -15,28 +15,28 @@ Este repositorio implementa una solución de nivel empresarial refactorizada hac
 
 ---
 
-## 2. 🏛️ Arquitectura del Sistema (Clean Modular Architecture)
+## 2. 🏛�?Arquitectura del Sistema (Clean Modular Architecture)
 
 El sistema sigue los principios de diseño por capas y separación estricta de responsabilidades:
 
 ```mermaid
 flowchart TD
-    subgraph Interfaces["🖥️ Capa de Interfaces (Presentation)"]
-        StreamlitApp["🌐 Web App Streamlit\n(app.py < 80 líneas)"]
-        WebPages["Componentes y Páginas\n(styles.css, state.py, pages/, components/)"]
-        ConsoleCLI["⌨️ Consola CLI con Argparse\n(main.py / procesa-cli: subcomandos)"]
-        MCPServer["🔌 Servidor MCP (FastMCP)\n(src/mcp_server.py: stdio)"]
+    subgraph Interfaces["??? Capa de Interfaces (Presentation)"]
+        StreamlitApp["?? Web App Streamlit\n(app.py < 80 l��neas)"]
+        WebPages["Componentes y P��ginas\n(styles.css, state.py, pages/, components/)"]
+        ConsoleCLI["?? Consola CLI con Argparse\n(main.py / procesa-cli: subcomandos)"]
+        MCPServer["?? Servidor MCP (FastMCP)\n(src/mcp_server.py: stdio)"]
         
         StreamlitApp --> WebPages
     end
 
-    subgraph Application["⚙️ Capa de Aplicación (Orchestration & Ingestion)"]
+    subgraph Application["?? Capa de Aplicaci��n (Orchestration & Ingestion)"]
         AgentCore["AgenteProyectos\n(orchestrator.py)"]
-        PromptLoader["PromptLoader\n(Introspección dinámica de esquema y reglas)"]
+        PromptLoader["PromptLoader\n(Introspecci��n din��mica de esquema y reglas)"]
         Memory["ConversationMemory\n(Ventana deslizante de 10 turnos)"]
         Fallback["FallbackEngine\n(Motor determinista parametrizado sin LLM)"]
         Pipeline["IngestionPipeline\n(Hash SHA-256, atomicidad y aislamiento)"]
-        Segmenter["DocumentSegmenter\n(Segmentación lógica de secciones)"]
+        Segmenter["DocumentSegmenter\n(Segmentaci��n l��gica de secciones)"]
         
         AgentCore --> PromptLoader
         AgentCore --> Memory
@@ -44,7 +44,7 @@ flowchart TD
         Pipeline --> Segmenter
     end
 
-    subgraph Tools["🛠️ Registro Centralizado de Herramientas"]
+    subgraph Tools["??? Registro Centralizado de Herramientas"]
         Registry["ToolRegistry\n(tools/base.py)"]
         ToolSQL["SQLTool\n('consultar_sql' - SELECT seguro)"]
         ToolFTS["FTSTool\n('buscar_texto' - FTS5 BM25)"]
@@ -55,14 +55,14 @@ flowchart TD
         MCPServer <--> Registry
     end
 
-    subgraph Domain["📦 Capa de Dominio (Models)"]
-        Models["FichaProyecto · MetricaKPI\nLeccionAprendida · ReglaNegocio\n(domain/models.py)"]
+    subgraph Domain["?? Capa de Dominio (Models)"]
+        Models["FichaProyecto �� MetricaKPI\nLeccionAprendida �� ReglaNegocio\n(domain/models.py)"]
     end
 
-    subgraph Infrastructure["🗄️ Capa de Infraestructura (Data & External Services)"]
+    subgraph Infrastructure["??? Capa de Infraestructura (Data & External Services)"]
         subgraph DB["Base de Datos SQLite (infrastructure/db/)"]
             DBSchema["Esquema Versionado\n(schema.py: Migraciones V1 -> V2)"]
-            DBConn["Conexión Segura\n(Autorizador SELECT, timeout, límite 200 filas)"]
+            DBConn["Conexi��n Segura\n(Autorizador SELECT, timeout, l��mite 200 filas)"]
             Repos["Repositorios Tipados\n(Proyectos, KPIs, Lecciones, Reglas, FTS)"]
             SQLiteFile[(data/database.sqlite)]
             
@@ -74,15 +74,15 @@ flowchart TD
         subgraph LLM["Proveedores de LLM (infrastructure/llm/)"]
             LLMBase["LLMProvider (Protocol)"]
             Gemini["GeminiProvider\n(google-genai con backoff exponencial)"]
-            Fake["FakeLLM\n(Simulación determinista en memoria)"]
+            Fake["FakeLLM\n(Simulaci��n determinista en memoria)"]
             
-            LLMBase <|-- Gemini
-            LLMBase <|-- Fake
+            Gemini -.->|implementa| LLMBase
+            Fake -.->|implementa| LLMBase
         end
 
         subgraph IngestionReaders["Lectores Modulares (ingestion/readers/)"]
-            PDFReader["PDFReader\n(Validación de capa de texto)"]
-            DocxReader["DocxReader\n(Párrafos y tablas completas)"]
+            PDFReader["PDFReader\n(Validaci��n de capa de texto)"]
+            DocxReader["DocxReader\n(P��rrafos y tablas completas)"]
             DocxReader --> Pipeline
             PDFReader --> Pipeline
         end
@@ -117,7 +117,7 @@ Las reglas de negocio están formalizadas en `data/reglas_negocio.json` y versio
 | Código de Regla | Ámbito / Proyecto | Directriz Oficial de Negocio |
 | :--- | :--- | :--- |
 | `RN-001` | Global | **Prevalencia de la Tabla Oficial de Resultados:** Ante cualquier discrepancia entre anexos/narrativas y la tabla oficial del informe de cierre, **prevalece siempre la tabla oficial**. |
-| `RN-002` | Plásticos del Pacífico (`PC-2025-027`) | **Línea Base de Paradas:** La línea base contractual y analítica es exactamente **`64 h/mes`** (meta `≤ 38 h/mes`, resultado `31 h/mes`, variación `-52%`). |
+| `RN-002` | Plásticos del Pacífico (`PC-2025-027`) | **Línea Base de Paradas:** La línea base contractual y analítica es exactamente **`64 h/mes`** (meta `�?38 h/mes`, resultado `31 h/mes`, variación `-52%`). |
 | `RN-003` | Horizonte Andino (`PC-2025-014`) | **No Atribuibilidad:** El incremento de colocación del `+9%` se originó en una campaña comercial externa; **no constituye entregable ni resultado atribuible** a la consultoría. |
 | `RN-004` | La Canasta (`PC-2026-006`) | **Cerrado con Pendientes:** Aunque finalizó su plazo, es el único proyecto en estado `Cerrado con pendientes` debido a la no integración técnica de 3 proveedores críticos. |
 | `RN-005` | Clínica Santa Lucía (`PC-2025-033`) | **Alcance Excluido:** Los servicios de Emergencia y Quirófanos fueron explícitamente excluidos del alcance contractual; las mediciones corresponden únicamente a Consulta Externa y Admisión. |
