@@ -1,22 +1,18 @@
 """
-Módulo de Extracción y Pipeline Estructurado (src/extractor.py)
-Utiliza Google GenAI SDK con Structured Outputs (response_schema=FichaProyecto)
-para procesar informes PDF/DOCX, guardar fichas JSON e indexar en SQLite y FTS5.
+Extractor Estructurado de Fichas de Proyecto (ingestion/extractor.py).
+Utiliza el protocolo abstracto LLMProvider con Structured Outputs (FichaProyecto)
+para extraer entidades técnicas desde el texto de los informes sin acoplarse al SDK de Gemini.
 """
 
-import json
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
-from procesa_agent.core.paths import FICHAS_DIR, RAW_DATA_DIR
+from procesa_agent.core.logging import logger
+from procesa_agent.core.paths import FICHAS_DIR
 from procesa_agent.domain.models import FichaProyecto
-from procesa_agent.infrastructure.db.connection import (
-    get_default_db_path,
-    guardar_ficha_en_bd,
-    indexar_informe_fts,
-    inicializar_bd,
-)
-from procesa_agent.ingestion.parser import leer_documento
+from procesa_agent.infrastructure.llm.base import LLMProvider
+from procesa_agent.infrastructure.llm.gemini import GeminiProvider
+from procesa_agent.ingestion.readers import get_reader
 
 PROMPT_SISTEMA_EXTRACCION = """
 Eres un Asistente Senior de Inteligencia Artificial y Consultoría Operativa para Procesa Consultores.
@@ -31,176 +27,61 @@ REGLAS CRÍTICAS:
 """
 
 
-def get_default_fichas_dir() -> Path:
-    """Retorna la ruta del directorio data/fichas/."""
-    base_dir = Path(__file__).resolve().parent.parent
-    fichas_dir = base_dir / "data" / "fichas"
-    fichas_dir.mkdir(parents=True, exist_ok=True)
-    return fichas_dir
+class DocumentExtractor:
+    """Extrae fichas técnicas estructuradas desde texto documental mediante un LLMProvider."""
+
+    def __init__(self, llm_provider: Optional[LLMProvider] = None) -> None:
+        self.llm_provider = llm_provider or GeminiProvider()
+
+    def extraer_ficha(self, texto_documento: str, nombre_archivo: str) -> FichaProyecto:
+        """Invoca al LLMProvider para extraer una FichaProyecto tipada desde el texto."""
+        prompt = (
+            f"{PROMPT_SISTEMA_EXTRACCION}\n\n"
+            f"INFORME DE CIERRE A PROCESAR:\n"
+            f"Archivo de origen: {nombre_archivo}\n\n"
+            f"--- CONTENIDO DEL INFORME ---\n"
+            f"{texto_documento}\n"
+            f"--- FIN DEL CONTENIDO ---\n\n"
+            f"Extrae la ficha técnica completa del proyecto asegurando la máxima fidelidad y apego al esquema FichaProyecto."
+        )
+
+        logger.info(f"Extrayendo ficha estructurada con LLMProvider para: {nombre_archivo}")
+        ficha = self.llm_provider.generar_estructurado(prompt=prompt, schema=FichaProyecto)
+
+        if not ficha.archivo_origen:
+            ficha.archivo_origen = nombre_archivo
+
+        return ficha
+
+
+def guardar_ficha_json(ficha: FichaProyecto, dir_fichas: Optional[Path] = None) -> Path:
+    """Guarda la FichaProyecto en formato JSON en data/fichas/{codigo_proyecto}.json."""
+    directorio = dir_fichas or FICHAS_DIR
+    directorio.mkdir(parents=True, exist_ok=True)
+    archivo_json = directorio / f"{ficha.codigo_proyecto.strip()}.json"
+    with open(archivo_json, "w", encoding="utf-8") as f:
+        f.write(ficha.model_dump_json(indent=2))
+    return archivo_json
 
 
 def extraer_ficha_con_gemini(
-    ruta_archivo: str, api_key: str, model_name: str = "gemini-2.5-flash", temperature: float = 0.1
-) -> FichaProyecto:
-    """
-    Llama a la API oficial de Google GenAI enviando el texto del documento
-    y forzando la salida tipada según FichaProyecto.
-    """
-    try:
-        from google import genai
-        from google.genai import types
-    except ImportError:
-        raise ImportError(
-            "El paquete google-genai no está instalado. Ejecuta: pip install google-genai"
-        )
-
-    # Lectura del archivo (PDF o DOCX)
-    doc_info = leer_documento(ruta_archivo)
-    texto_documento = doc_info["texto_completo"]
-    nombre_archivo = doc_info["archivo_origen"]
-
-    client = genai.Client(api_key=api_key)
-
-    contenido_usuario = f"""
-INFORME DE CIERRE A PROCESAR:
-Archivo de origen: {nombre_archivo}
-
---- CONTENIDO DEL INFORME ---
-{texto_documento}
---- FIN DEL CONTENIDO ---
-
-Extrae la ficha técnica completa del proyecto asegurando la máxima fidelidad y apego al esquema FichaProyecto.
-"""
-
-    response = client.models.generate_content(
-        model=model_name,
-        contents=f"{PROMPT_SISTEMA_EXTRACCION}\n\n{contenido_usuario}",
-        config=types.GenerateContentConfig(
-            response_mime_type="application/json",
-            response_schema=FichaProyecto,
-            temperature=temperature,
-        ),
-    )
-
-    if not response.text:
-        raise ValueError(f"Respuesta vacía recibida de Gemini para el archivo {nombre_archivo}")
-
-    ficha = FichaProyecto.model_validate_json(response.text)
-    # Asegurar nombre de archivo de origen
-    if not ficha.archivo_origen:
-        ficha.archivo_origen = nombre_archivo
-
-    return ficha
-
-
-def guardar_ficha_json(ficha: FichaProyecto, dir_fichas: Optional[str] = None) -> str:
-    """Guarda la ficha en formato JSON en data/fichas/{codigo_proyecto}.json."""
-    directorio = Path(dir_fichas) if dir_fichas else get_default_fichas_dir()
-    directorio.mkdir(parents=True, exist_ok=True)
-    nombre_archivo = f"{ficha.codigo_proyecto.strip()}.json"
-    ruta_salida = directorio / nombre_archivo
-
-    with open(ruta_salida, "w", encoding="utf-8") as f:
-        json_str = ficha.model_dump_json(indent=2)
-        f.write(json_str)
-
-    return str(ruta_salida)
-
-
-def cargar_ficha_json(ruta_json: str) -> FichaProyecto:
-    """Carga y valida una ficha desde un archivo JSON."""
-    with open(ruta_json, "r", encoding="utf-8") as f:
-        data = json.load(f)
-    return FichaProyecto.model_validate(data)
-
-
-def procesar_e_indexar_informe(
-    ruta_archivo: str, ficha: FichaProyecto, db_path: Optional[str] = None
-) -> None:
-    """
-    Persiste la ficha en SQLite (tablas proyectos, kpis, lecciones)
-    y parsea el archivo original para indexar sus secciones en informes_fts.
-    """
-    db = db_path or get_default_db_path()
-    inicializar_bd(db)
-
-    # 1. Guardar en tablas relacionales
-    guardar_ficha_en_bd(ficha, db)
-
-    # 2. Segmentar e indexar en FTS5
-    doc_info = leer_documento(ruta_archivo)
-    indexar_informe_fts(
-        codigo_proyecto=ficha.codigo_proyecto,
-        archivo_origen=doc_info["archivo_origen"],
-        secciones=doc_info["secciones"],
-        db_path=db,
-    )
-
-
-def ejecutar_ingesta_completa(
-    raw_dir: Optional[str] = None,
-    fichas_dir: Optional[str] = None,
-    db_path: Optional[str] = None,
+    ruta_archivo: str,
     api_key: Optional[str] = None,
-    model_name: str = "gemini-2.5-flash",
+    model_name: Optional[str] = None,
     temperature: float = 0.1,
-    forzar_extraccion_gemini: bool = False,
-) -> List[FichaProyecto]:
-    """
-    Pipeline maestro de ingesta:
-    1. Si forzar_extraccion_gemini es True y hay api_key, llama a Gemini para cada informe en data/raw/.
-    2. Si existen fichas JSON previas en data/fichas/ y no se fuerza extracción con Gemini,
-       las reutiliza para carga rápida y resiliente.
-    3. Si no hay JSONs y hay API key, invoca Gemini.
-    4. Indexa los textos íntegros en SQLite FTS5 y persiste las entidades relacionales.
-    """
-    dir_raw = Path(raw_dir) if raw_dir else RAW_DATA_DIR
-    dir_fichas = Path(fichas_dir) if fichas_dir else FICHAS_DIR
-    db = db_path or get_default_db_path()
+) -> FichaProyecto:
+    """Función de compatibilidad hacia atrás para extracción con Gemini."""
+    path = Path(ruta_archivo)
+    reader = get_reader(path)
+    doc_info = reader.read(path)
 
-    inicializar_bd(db)
-    archivos_procesados: List[FichaProyecto] = []
+    provider = GeminiProvider(api_key=api_key, model_name=model_name, temperature=temperature)
+    extractor = DocumentExtractor(llm_provider=provider)
+    return extractor.extraer_ficha(doc_info["texto_completo"], doc_info["archivo_origen"])
 
-    archivos_raw = [
-        f
-        for f in sorted(dir_raw.iterdir())
-        if f.is_file() and f.suffix.lower() in [".pdf", ".docx"]
-    ]
 
-    for archivo in archivos_raw:
-        ficha: Optional[FichaProyecto] = None
+def ejecutar_ingesta_completa(*args, **kwargs):
+    """Wrapper de conveniencia hacia procesa_agent.ingestion.pipeline.ejecutar_ingesta_completa."""
+    from procesa_agent.ingestion.pipeline import ejecutar_ingesta_completa as _eic
 
-        # Verificar si ya existe JSON correspondiente en data/fichas/
-        archivos_json = list(dir_fichas.glob("*.json"))
-        json_candidato = None
-        for j in archivos_json:
-            try:
-                with open(j, "r", encoding="utf-8") as f_json:
-                    contenido_json = json.load(f_json)
-                    if contenido_json.get("archivo_origen") == archivo.name:
-                        json_candidato = j
-                        break
-            except Exception:
-                continue
-
-        # Si se fuerza Gemini y hay API key, o si no hay JSON candidato
-        if (forzar_extraccion_gemini and api_key) or (json_candidato is None and api_key):
-            ficha = extraer_ficha_con_gemini(
-                ruta_archivo=str(archivo),
-                api_key=api_key,
-                model_name=model_name,
-                temperature=temperature,
-            )
-            guardar_ficha_json(ficha, str(dir_fichas))
-        elif json_candidato is not None:
-            ficha = cargar_ficha_json(str(json_candidato))
-
-        if ficha is not None:
-            procesar_e_indexar_informe(
-                ruta_archivo=str(archivo),
-                ficha=ficha,
-                db_path=db,
-            )
-            archivos_procesados.append(ficha)
-
-    return archivos_procesados
+    return _eic(*args, **kwargs)
