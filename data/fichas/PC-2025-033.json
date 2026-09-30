@@ -1,0 +1,112 @@
+{
+  "codigo_proyecto": "PC-2025-033",
+  "archivo_origen": "Informe_Cierre_PC-2025-033_Clinica_Santa_Lucia.docx",
+  "cliente": "Clínica Santa Lucía del Valle",
+  "cliente_descripcion": "Clínica privada de especialidades con 38 consultorios y 60 camas, atiende en promedio 9.800 citas al mes en 22 especialidades.",
+  "sector": "Salud – clínicas y hospitales privados",
+  "ubicacion": "Valle de los Chillos, Quito",
+  "periodo": "6 de octubre de 2025 al 27 de febrero de 2026",
+  "duracion_semanas": 21,
+  "gerente_proyecto": "Ing. Martín Aguirre",
+  "contraparte_cliente": "Dirección Médica y Jefatura de Admisiones",
+  "estado": "Cerrado aceptado",
+  "fecha_aceptacion": "6 de marzo de 2026",
+  "resumen_ejecutivo": "La Clínica Santa Lucía del Valle recibía un número creciente de quejas por tiempos de espera en consulta externa, que se habían convertido en el principal motivo de insatisfacción en sus encuestas. El proyecto intervino el recorrido completo del paciente, desde el agendamiento de la cita hasta el ingreso al consultorio, con foco en el proceso de admisión, que era el principal cuello de botella. Gracias al rediseño del agendamiento, la implementación de la pre-admisión digital y la reorganización de las ventanillas de admisión, el proyecto redujo el tiempo de espera promedio de los pacientes en un 30% y el tiempo de admisión en más de la mitad. La satisfacción de los pacientes, medida mediante NPS, se duplicó.",
+  "diagnostico_problema": "Pacientes debían llegar 30 minutos antes de su cita para admisión en ventanilla (registro, validación de seguro y cobro). Citas en bloques fijos de 20 min para todas las especialidades sin considerar duración real, saturando horas pico.",
+  "alcance_incluido": "Consulta externa en todas sus 22 especialidades.",
+  "alcance_excluido": "Los servicios de emergencia, hospitalización e imagenología quedaron fuera del alcance. El desarrollo del formulario de pre-admisión en línea fue realizado por el proveedor del sistema hospitalario del cliente.",
+  "metodologia": "Enfoque Lean aplicado a salud complementado con teoría de colas para ventanillas y agenda. Tres fases: Diagnóstico (sem 1-5), Diseño y piloto (sem 6-12), Despliegue y medición final (sem 13-21).",
+  "iniciativas_clave": [
+    {
+      "nombre": "Agenda diferenciada por especialidad",
+      "descripcion": "Bloques de 15, 20 o 30 minutos según duración observada y reserva de espacios para control."
+    },
+    {
+      "nombre": "Pre-admisión digital",
+      "descripcion": "Validación de datos, seguro y copago en línea hasta 2 horas antes de la cita, con acceso directo a sala de espera."
+    },
+    {
+      "nombre": "Reorganización de ventanillas",
+      "descripcion": "Ventanilla exclusiva para pre-admisión y casos rápidos; modulación horaria de personal según colas."
+    },
+    {
+      "nombre": "Recordatorios y confirmación de citas",
+      "descripcion": "Mensajería automática 48 y 24 horas antes para confirmación, reprogramación o cancelación."
+    }
+  ],
+  "kpis": [
+    {
+      "indicador": "Tiempo total de espera del paciente",
+      "unidad": "min",
+      "linea_base": "52 min",
+      "meta": "reducción ≥ 20%",
+      "resultado": "39,5 min",
+      "variacion": "-24%",
+      "cumplimiento": "Cumplido",
+      "observaciones": "Medición preliminar arrojó -30%, la medición final oficial de cierre de febrero de 2026 arrojó -24%."
+    },
+    {
+      "indicador": "Tiempo de admisión en ventanilla",
+      "unidad": "min",
+      "linea_base": "14 min",
+      "meta": "< 8 min",
+      "resultado": "6 min",
+      "variacion": "-57%",
+      "cumplimiento": "Cumplido",
+      "observaciones": "Reducción a menos de la mitad."
+    },
+    {
+      "indicador": "Pacientes con pre-admisión digital",
+      "unidad": "%",
+      "linea_base": "0%",
+      "meta": "≥ 30%",
+      "resultado": "41%",
+      "variacion": "+41 pp",
+      "cumplimiento": "Cumplido",
+      "observaciones": "Superó holgadamente la meta del 30%."
+    },
+    {
+      "indicador": "Ausentismo de citas",
+      "unidad": "%",
+      "linea_base": "22%",
+      "meta": "< 18%",
+      "resultado": "15%",
+      "variacion": "-7 pp",
+      "cumplimiento": "Cumplido",
+      "observaciones": "Reducción sostenida por recordatorios automáticos."
+    },
+    {
+      "indicador": "Satisfacción del paciente (NPS)",
+      "unidad": "puntos",
+      "linea_base": "18",
+      "meta": "Sin meta",
+      "resultado": "37",
+      "variacion": "+19 puntos",
+      "cumplimiento": "Informativo",
+      "observaciones": "La satisfacción prácticamente se duplicó."
+    }
+  ],
+  "lecciones": [
+    {
+      "tema": "Gestión del cambio",
+      "titulo": "Involucrar a los médicos desde el diagnóstico",
+      "descripcion": "El rediseño de la agenda generó inicialmente rechazo de algunos especialistas. Presentarles los tiempos reales de sus propias consultas, medidos en el diagnóstico, facilitó el acuerdo sobre los nuevos bloques."
+    },
+    {
+      "tema": "Metodología",
+      "titulo": "La medición manual de tiempos tiene límites",
+      "descripcion": "El seguimiento presencial de pacientes es costoso y difícil de repetir. Se recomendó al cliente registrar automáticamente las marcas de tiempo de llegada, admisión e ingreso a consulta para dar seguimiento continuo."
+    },
+    {
+      "tema": "Gestión del cambio",
+      "titulo": "La adopción digital requiere acompañamiento",
+      "descripcion": "La pre-admisión creció de forma sostenida solo después de ubicar personal de apoyo en la entrada durante las primeras semanas para guiar a los pacientes."
+    }
+  ],
+  "proximos_pasos": [
+    "Implementar el registro automático de marcas de tiempo en el sistema hospitalario para medir la espera de forma continua.",
+    "Evaluar la ampliación de horarios o consultorios en traumatología y dermatología.",
+    "Extender el modelo de pre-admisión a imagenología y laboratorio.",
+    "Establecer una meta de pre-admisión digital de 60% para el cierre de 2026."
+  ]
+}

@@ -1,0 +1,35 @@
+# Environment variables
+.env
+.env.local
+
+# Database
+*.sqlite
+*.sqlite3
+data/database.sqlite
+data/database.sqlite-journal
+data/database.sqlite-wal
+data/database.sqlite-shm
+
+# Python cache & artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Virtual Environment
+venv/
+.venv/
+ENV/
+env/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# IDEs and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

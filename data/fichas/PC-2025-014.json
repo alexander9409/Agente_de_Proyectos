@@ -1,0 +1,111 @@
+{
+  "codigo_proyecto": "PC-2025-014",
+  "archivo_origen": "Informe_Cierre_PC-2025-014_Cooperativa_Horizonte_Andino.pdf",
+  "cliente": "Cooperativa de Ahorro y Crédito Horizonte Andino Ltda.",
+  "cliente_descripcion": "Segmento 1, 22 agencias en Sierra centro",
+  "sector": "Servicios financieros – cooperativas de ahorro y crédito",
+  "ubicacion": "Sierra centro, Ecuador (22 agencias)",
+  "periodo": "3 de febrero de 2025 al 27 de junio de 2025",
+  "duracion_semanas": 21,
+  "gerente_proyecto": "Ing. Daniela Cevallos",
+  "contraparte_cliente": "Gerencia de Negocios y Jefatura de Operaciones de Crédito",
+  "estado": "Cerrado aceptado",
+  "fecha_aceptacion": "4 de julio de 2025",
+  "resumen_ejecutivo": "Horizonte Andino enfrentaba tiempos de aprobación de crédito muy superiores a los de su competencia directa, lo que se traducía en pérdida de socios hacia bancos y fintechs con respuesta en 48 horas. El proyecto rediseñó el flujo completo de originación, desde la recepción de la solicitud en agencia hasta el desembolso, eliminando validaciones duplicadas, automatizando la consulta al buró de crédito y estableciendo un esquema de aprobación por niveles de riesgo. Al cierre, el tiempo promedio de aprobación bajó de 12 a 5 días hábiles y la productividad de los analistas de crédito aumentó 46%. Se cumplieron cuatro de los cinco indicadores meta; la tasa de abandono de solicitudes mejoró de forma importante pero quedó un punto porcentual por encima de la meta.",
+  "diagnostico_problema": "La cooperativa coloca en promedio 1.900 operaciones de crédito de consumo y microcrédito al mes. El diagnóstico inicial evidenció que una solicitud pasaba por 9 manos distintas, que la información del socio se digitaba tres veces en sistemas diferentes y que el 34% de las solicitudes regresaba a la agencia por documentación incompleta.",
+  "alcance_incluido": "Productos de crédito de consumo y microcrédito en las 22 agencias de la cooperativa.",
+  "alcance_excluido": "Crédito hipotecario y crédito corporativo, que siguen un proceso de comité distinto. La implementación tecnológica de la consulta automática al buró fue realizada por el área de TI del cliente, con acompañamiento funcional del equipo consultor.",
+  "metodologia": "Enfoque Lean en cuatro fases: diagnóstico con mapeo de flujo de valor (VSM) del estado actual, diseño del estado futuro, piloto en 4 agencias durante 5 semanas y despliegue escalonado al resto de la red.",
+  "iniciativas_clave": [
+    {
+      "nombre": "Checklist digital de documentación en agencia",
+      "descripcion": "Impide enviar solicitudes incompletas desde la agencia."
+    },
+    {
+      "nombre": "Consulta automática al buró de crédito",
+      "descripcion": "Integrada al sistema de originación para validación inmediata de riesgo."
+    },
+    {
+      "nombre": "Matriz de aprobación por niveles de riesgo",
+      "descripcion": "Las solicitudes de bajo riesgo y monto menor a USD 5.000 se aprueban en agencia sin pasar por oficina matriz."
+    },
+    {
+      "nombre": "Tablero diario de solicitudes en curso",
+      "descripcion": "Herramienta de control visual diario para jefes de agencia."
+    }
+  ],
+  "kpis": [
+    {
+      "indicador": "Tiempo promedio de aprobación",
+      "unidad": "días hábiles",
+      "linea_base": "12",
+      "meta": "≤ 6",
+      "resultado": "5",
+      "variacion": "-58%",
+      "cumplimiento": "Cumplido",
+      "observaciones": "Superó la meta reduciendo a 5 días hábiles."
+    },
+    {
+      "indicador": "Solicitudes con reproceso",
+      "unidad": "% del total",
+      "linea_base": "34%",
+      "meta": "< 15%",
+      "resultado": "12%",
+      "variacion": "-22 pp",
+      "cumplimiento": "Cumplido",
+      "observaciones": "Logrado gracias al checklist digital en agencia."
+    },
+    {
+      "indicador": "Productividad de analistas",
+      "unidad": "solicitudes/analista/mes",
+      "linea_base": "85",
+      "meta": "≥ 110",
+      "resultado": "124",
+      "variacion": "+46%",
+      "cumplimiento": "Cumplido",
+      "observaciones": "Incremento en la capacidad de atención."
+    },
+    {
+      "indicador": "Satisfacción de socios",
+      "unidad": "escala 1 a 5",
+      "linea_base": "3,2",
+      "meta": "≥ 4,0",
+      "resultado": "4,1",
+      "variacion": "+0,9",
+      "cumplimiento": "Cumplido",
+      "observaciones": "Encuesta realizada a 640 socios."
+    },
+    {
+      "indicador": "Tasa de abandono de solicitudes",
+      "unidad": "% del total",
+      "linea_base": "18%",
+      "meta": "≤ 10%",
+      "resultado": "11%",
+      "variacion": "-7 pp",
+      "cumplimiento": "No cumplido",
+      "observaciones": "Quedó 1 punto porcentual por encima de la meta fijada en 10%."
+    }
+  ],
+  "lecciones": [
+    {
+      "tema": "Gestión del cambio",
+      "titulo": "La resistencia al cambio se concentró en los mandos medios",
+      "descripcion": "Los jefes de agencia percibían la aprobación descentralizada como una pérdida de control. Incorporarlos como dueños del tablero diario, y no solo como receptores del cambio, fue determinante para el despliegue."
+    },
+    {
+      "tema": "Metodología",
+      "titulo": "El piloto debe incluir agencias difíciles",
+      "descripcion": "Las primeras dos agencias piloto eran las de mejor desempeño y los resultados iniciales sobreestimaron el impacto. Se agregaron dos agencias rurales para validar el diseño."
+    },
+    {
+      "tema": "Calidad de datos",
+      "titulo": "La calidad de los datos del core bancario condiciona la medición",
+      "descripcion": "Fue necesario depurar fechas de estado de las solicitudes antes de poder construir la línea base."
+    }
+  ],
+  "proximos_pasos": [
+    "Profundizar en las causas del abandono de solicitudes, principalmente en microcrédito rural, donde se concentra el 70% de los casos.",
+    "Evaluar la originación digital de créditos de bajo monto a través de la aplicación móvil.",
+    "Mantener la revisión mensual de indicadores en el comité de negocios durante al menos seis meses."
+  ]
+}

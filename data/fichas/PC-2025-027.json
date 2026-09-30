@@ -1,0 +1,132 @@
+{
+  "codigo_proyecto": "PC-2025-027",
+  "archivo_origen": "Informe_Cierre_PC-2025-027_Plasticos_del_Pacifico.pdf",
+  "cliente": "Plásticos del Pacífico S.A.",
+  "cliente_descripcion": "Fabricante de envases plásticos rígidos con planta principal en Durán, Guayas; tres turnos, seis días a la semana, dos líneas productivas.",
+  "sector": "Manufactura – plásticos rígidos y envases",
+  "ubicacion": "Planta de Durán, Guayas",
+  "periodo": "7 de julio de 2025 al 12 de diciembre de 2025",
+  "duracion_semanas": 23,
+  "gerente_proyecto": "Ing. Carlos Mendoza",
+  "contraparte_cliente": "Gerencia de Operaciones y Jefatura de Planta",
+  "estado": "Cerrado aceptado",
+  "fecha_aceptacion": "19 de diciembre de 2025",
+  "resumen_ejecutivo": "Plásticos del Pacífico experimentaba restricciones de capacidad que le impedían aceptar nuevos pedidos durante los picos de demanda del sector de bebidas. La gerencia evaluaba la compra de una nueva inyectora por USD 380.000. El proyecto demostró que existía capacidad oculta en la Línea 1 de inyección, que concentra el 60% del volumen de la planta y presentaba el OEE más bajo. Mediante la aplicación de Mantenimiento Productivo Total (TPM), reducción de tiempos de cambio de formato (SMED) y un sistema de gestión diaria de paradas, el OEE de la Línea 1 pasó de 58% a 71%. Esta mejora equivale a una capacidad adicional aproximada de 1,9 millones de tapas al mes, suficiente para cubrir los nuevos contratos sin inversión en equipos.",
+  "diagnostico_problema": "En 2024 la planta rechazó pedidos por falta de capacidad en al menos cuatro ocasiones. Las pérdidas de la Línea 1 se concentraban en: cambios de formato largos y poco estandarizados, paradas no programadas por fallas mecánicas recurrentes y microparadas por atascos en alimentación de material. El registro manual de fin de turno subestimaba paradas en ~40%.",
+  "alcance_incluido": "Línea 1 de inyección de tapas (6 inyectoras) en la planta de Durán.",
+  "alcance_excluido": "La Línea 2 de soplado (3 sopladoras) quedó expresamente fuera del alcance porque el cliente reemplazará dos de las tres sopladoras en el primer semestre de 2026. Ninguna cifra de resultados corresponde a la Línea 2 ni a la planta en su conjunto. También quedaron fuera del alcance la gestión de inventarios de materia prima y la programación de producción.",
+  "metodologia": "Metodología en cuatro fases: Diagnóstico (sem 1-4), Diseño (sem 5-8), Implementación (sem 9-19) y Estabilización (sem 20-23), combinando Mantenimiento Productivo Total (TPM), SMED y gestión diaria.",
+  "iniciativas_clave": [
+    {
+      "nombre": "Reducción de tiempos de cambio de formato (SMED)",
+      "descripcion": "Carros de cambio por molde, acoples rápidos de agua y secuencia estándar por actividad filmada y analizada."
+    },
+    {
+      "nombre": "Mantenimiento autónomo y preventivo",
+      "descripcion": "Inspección inicial (214 anomalías detectadas, 187 resueltas), estándares visuales y reorganización preventiva de cañón, bombas y expulsión."
+    },
+    {
+      "nombre": "Gestión diaria de paradas",
+      "descripcion": "Registro en tablet con lista cerrada de 24 causas de parada y reunión matutina de 15 minutos en piso."
+    },
+    {
+      "nombre": "Mejoras en alimentación de material",
+      "descripcion": "Tolvas con sensores de nivel y ajuste en la secuencia de secado de resina para eliminar microparadas."
+    }
+  ],
+  "kpis": [
+    {
+      "indicador": "OEE (Línea 1)",
+      "unidad": "%",
+      "linea_base": "58%",
+      "meta": "≥ 70%",
+      "resultado": "71%",
+      "variacion": "+13 pp",
+      "cumplimiento": "Cumplido",
+      "observaciones": "OEE = Disponibilidad (82%) × Rendimiento (91%) × Calidad (95%). Aporte de 1,9M tapas/mes adicionales."
+    },
+    {
+      "indicador": "Disponibilidad (Línea 1)",
+      "unidad": "%",
+      "linea_base": "72%",
+      "meta": "Sin meta",
+      "resultado": "82%",
+      "variacion": "+10 pp",
+      "cumplimiento": "Informativo",
+      "observaciones": "Componente de OEE."
+    },
+    {
+      "indicador": "Rendimiento (Línea 1)",
+      "unidad": "%",
+      "linea_base": "86%",
+      "meta": "Sin meta",
+      "resultado": "91%",
+      "variacion": "+5 pp",
+      "cumplimiento": "Informativo",
+      "observaciones": "Componente de OEE."
+    },
+    {
+      "indicador": "Calidad (Línea 1)",
+      "unidad": "%",
+      "linea_base": "94%",
+      "meta": "Sin meta",
+      "resultado": "95%",
+      "variacion": "+1 pp",
+      "cumplimiento": "Informativo",
+      "observaciones": "Componente de OEE."
+    },
+    {
+      "indicador": "Tiempo promedio de cambio de formato",
+      "unidad": "min",
+      "linea_base": "95 min",
+      "meta": "≤ 48 min",
+      "resultado": "38 min",
+      "variacion": "-60%",
+      "cumplimiento": "Cumplido",
+      "observaciones": "Aplicación de metodología SMED."
+    },
+    {
+      "indicador": "Paradas no programadas",
+      "unidad": "h/mes",
+      "linea_base": "64 h/mes",
+      "meta": "≤ 38 h/mes",
+      "resultado": "31 h/mes",
+      "variacion": "-52%",
+      "cumplimiento": "Cumplido",
+      "observaciones": "Logrado mediante mantenimiento preventivo y autónomo."
+    },
+    {
+      "indicador": "Tasa de desperdicio (scrap)",
+      "unidad": "%",
+      "linea_base": "6,0%",
+      "meta": "Sin meta",
+      "resultado": "5,0%",
+      "variacion": "-1 pp",
+      "cumplimiento": "Informativo",
+      "observaciones": "Estabilización del proceso de inyección."
+    }
+  ],
+  "lecciones": [
+    {
+      "tema": "Gestión del cambio",
+      "titulo": "La resistencia al cambio se concentró en los mandos medios",
+      "descripcion": "Los supervisores de turno veían el registro detallado de paradas como un mecanismo de control sobre su desempeño. La situación cambió cuando se les dio la responsabilidad de conducir la reunión diaria y de proponer las acciones, en lugar de solo reportar."
+    },
+    {
+      "tema": "Calidad de datos",
+      "titulo": "Sin datos confiables no hay mejora sostenible",
+      "descripcion": "El registro manual subestimaba las paradas en cerca de un 40%. Invertir las primeras semanas en medir bien evitó atacar causas equivocadas."
+    },
+    {
+      "tema": "Metodología",
+      "titulo": "SMED genera resultados rápidos y visibles",
+      "descripcion": "Empezar por los cambios de formato permitió mostrar resultados en el primer mes de implementación y ganar credibilidad en planta."
+    }
+  ],
+  "proximos_pasos": [
+    "Replicar el modelo de gestión diaria y mantenimiento autónomo en la Línea 2 una vez concluido el reemplazo de las sopladoras, previsto para el primer semestre de 2026.",
+    "Revisar la programación de producción para agrupar pedidos por molde y reducir el número de cambios de formato por semana.",
+    "Evaluar la conexión automática de las inyectoras al sistema de registro para eliminar la digitación manual de paradas.",
+    "Realizar una auditoría de sostenibilidad a los seis meses del cierre."
+  ]
+}

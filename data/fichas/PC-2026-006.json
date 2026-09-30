@@ -1,0 +1,116 @@
+{
+  "codigo_proyecto": "PC-2026-006",
+  "archivo_origen": "Informe_Cierre_PC-2026-006_Supermercados_La_Canasta.pdf",
+  "cliente": "Supermercados La Canasta Cía. Ltda.",
+  "cliente_descripcion": "Cadena de 14 supermercados en Pichincha, Imbabura y Cotopaxi; maneja aproximadamente 11.500 códigos de producto activos.",
+  "sector": "Retail – supermercados",
+  "ubicacion": "Pichincha, Imbabura y Cotopaxi (14 locales)",
+  "periodo": "2 de marzo de 2026 al 21 de agosto de 2026",
+  "duracion_semanas": 25,
+  "gerente_proyecto": "Ing. Daniela Cevallos",
+  "contraparte_cliente": "Gerencia de Operaciones y Jefatura de Compras",
+  "estado": "Cerrado con pendientes",
+  "fecha_aceptacion": "28 de agosto de 2026",
+  "resumen_ejecutivo": "La Canasta registraba altos niveles de productos agotados en percha en sus categorías de mayor venta, al mismo tiempo que mantenía inventario excesivo en bodegas de tienda. La reposición dependía del criterio de cada administrador y las órdenes a proveedores se generaban manualmente en hojas de cálculo. El proyecto implementó una clasificación ABC de productos, parámetros de reposición por punto de pedido para las categorías A y B, y un proceso semanal de planificación de demanda. Como resultado, el quiebre de stock en productos de categoría A bajó de 9,5% a 4,8% y la merma de perecibles se redujo en 0,7 puntos porcentuales. El objetivo de integrar automáticamente las órdenes de compra con los principales proveedores no se cumplió y fue trasladado a una segunda fase.",
+  "diagnostico_problema": "El 62% de los quiebres de stock se originaba en tienda y no en el centro de distribución; precisión de inventario inferior al 80% en varios locales. Reposición manual sin parámetros estandarizados.",
+  "alcance_incluido": "Piloto en 3 locales (Quito norte, Cumbayá e Ibarra) y despliegue posterior en los 14 locales de la cadena.",
+  "alcance_excluido": "El centro de distribución quedó fuera del alcance, salvo en lo referente a los tiempos de despacho hacia tiendas. Las conclusiones completas de diagnóstico por local constan en el informe de abril de 2026.",
+  "metodologia": "Herramientas de gestión de supply chain con mejora de procesos: Clasificación ABC, punto de pedido y stock de seguridad por local basado en 52 semanas, planificación semanal de demanda, conteos cíclicos y especificación funcional de integración EDI.",
+  "iniciativas_clave": [
+    {
+      "nombre": "Clasificación ABC de productos",
+      "descripcion": "Segmentación de portafolio según aporte a ventas para focalizar reposición."
+    },
+    {
+      "nombre": "Punto de pedido y stock de seguridad",
+      "descripcion": "Parámetros automáticos para categorías A y B basados en historial de 52 semanas."
+    },
+    {
+      "nombre": "Planificación semanal de demanda",
+      "descripcion": "Mesa de trabajo entre Compras, Operaciones y Comercial considerando promociones y estacionalidad."
+    },
+    {
+      "nombre": "Conteos cíclicos semanales",
+      "descripcion": "Metodología para elevar y sostener la exactitud del inventario en sistema al 93%."
+    },
+    {
+      "nombre": "Especificación funcional de órdenes con proveedores",
+      "descripcion": "Diseño de integración de órdenes electrónicas."
+    }
+  ],
+  "kpis": [
+    {
+      "indicador": "Quiebre de stock, categoría A",
+      "unidad": "%",
+      "linea_base": "9,5%",
+      "meta": "≤ 5%",
+      "resultado": "4,8%",
+      "variacion": "-4,7 pp",
+      "cumplimiento": "Cumplido",
+      "observaciones": "Bajó de 9,5% a 4,8%, cumpliendo la meta."
+    },
+    {
+      "indicador": "Días de inventario en tienda",
+      "unidad": "días",
+      "linea_base": "38 días",
+      "meta": "≤ 30 días",
+      "resultado": "31 días",
+      "variacion": "-7 días",
+      "cumplimiento": "Parcialmente cumplido",
+      "observaciones": "Quedó 1 día sobre la meta por acumulación deliberada de stock en licores por fin de año. Sin licores fue 29 días."
+    },
+    {
+      "indicador": "Integración de órdenes con proveedores",
+      "unidad": "proveedores",
+      "linea_base": "0 de 3",
+      "meta": "3 de 3",
+      "resultado": "0 de 3",
+      "variacion": "0",
+      "cumplimiento": "No cumplido",
+      "observaciones": "ERP del cliente requiere actualización programada para nov 2026 y un proveedor carecía de capacidad técnica. Trasladado a fase 2."
+    },
+    {
+      "indicador": "Merma de perecibles",
+      "unidad": "%",
+      "linea_base": "4,1%",
+      "meta": "reducción ≥ 0,5 pp",
+      "resultado": "3,4%",
+      "variacion": "-0,7 pp",
+      "cumplimiento": "Cumplido",
+      "observaciones": "Reducción de 0,7 pp superando el mínimo acordado de 0,5 pp."
+    },
+    {
+      "indicador": "Precisión de inventario en sistema",
+      "unidad": "%",
+      "linea_base": "78%",
+      "meta": "Sin meta",
+      "resultado": "93%",
+      "variacion": "+15 pp",
+      "cumplimiento": "Informativo",
+      "observaciones": "Mejora sustancial gracias a conteos cíclicos semanales."
+    }
+  ],
+  "lecciones": [
+    {
+      "tema": "Calidad de datos",
+      "titulo": "Los datos maestros son el cimiento",
+      "descripcion": "Cerca del 15% de los códigos tenía unidades de medida o factores de empaque incorrectos, lo que distorsionaba los cálculos de reposición. Su depuración tomó tres semanas no previstas en el plan."
+    },
+    {
+      "tema": "Terceros",
+      "titulo": "Las dependencias de terceros deben gestionarse desde el inicio",
+      "descripcion": "La integración con proveedores dependía de la versión del ERP y de la capacidad técnica de los propios proveedores; ambos riesgos debieron identificarse y validarse en el diagnóstico."
+    },
+    {
+      "tema": "Gestión del cambio",
+      "titulo": "El administrador de tienda es clave",
+      "descripcion": "Los locales cuyos administradores participaron en el diseño de los parámetros adoptaron el modelo más rápido y con menos ajustes manuales."
+    }
+  ],
+  "proximos_pasos": [
+    "Ejecutar la segunda fase de integración electrónica de órdenes de compra tras la actualización del ERP.",
+    "Extender los parámetros de reposición a los productos de categoría C con mayor rotación.",
+    "Mantener los conteos cíclicos semanales, ya que la precisión de inventario es la base del modelo.",
+    "Revisar los parámetros de reposición de forma trimestral y antes de cada temporada alta."
+  ]
+}
