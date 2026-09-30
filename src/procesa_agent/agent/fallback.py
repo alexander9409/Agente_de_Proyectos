@@ -294,7 +294,7 @@ class FallbackEngine:
             # 1. Buscar coincidencia con proyectos registrados
             cursor = conn.cursor()
             todos_proyectos = cursor.execute(
-                "SELECT codigo_proyecto, cliente, sector, gerente_proyecto, estado, archivo_origen, alcance_incluido, alcance_excluido, resumen_ejecutivo FROM proyectos;"
+                "SELECT codigo_proyecto, cliente, sector, duracion_semanas, gerente_proyecto, estado, archivo_origen, alcance_incluido, alcance_excluido, resumen_ejecutivo FROM proyectos;"
             ).fetchall()
 
             codigos_relevantes: Set[str] = set()
@@ -310,6 +310,73 @@ class FallbackEngine:
                 ):
                     proyectos_encontrados.append(p_dict)
                     codigos_relevantes.add(p_dict["codigo_proyecto"])
+
+            # Entidades no registradas para anti-alucinación
+            ENTIDADES_NO_REGISTRADAS_CHECK: Set[str] = {
+                "banco",
+                "pichincha",
+                "farmacia",
+                "petroecuador",
+                "telecom",
+                "aerolinea",
+                "aerolínea",
+                "hospital",
+            }
+            es_consulta_entidad_externa = any(e in msg_norm for e in ENTIDADES_NO_REGISTRADAS_CHECK)
+
+            # Si no hubo coincidencia con un cliente específico, verificar si es consulta analítica sobre el portafolio
+            if not proyectos_encontrados and not es_consulta_entidad_externa:
+                TERMINOS_PORTAFOLIO = {
+                    "proyecto",
+                    "proyectos",
+                    "duracion",
+                    "duraron",
+                    "semanas",
+                    "gerente",
+                    "gerentes",
+                    "lider",
+                    "lideraron",
+                    "portafolio",
+                    "cerraron",
+                    "estados",
+                    "cuales",
+                    "cuantos",
+                    "cuantas",
+                    "tiempo",
+                    "tiempos",
+                    "asignados",
+                    "informes",
+                }
+                if any(t in msg_norm for t in TERMINOS_PORTAFOLIO):
+                    candidatos = [dict(p) for p in todos_proyectos]
+                    m_sem = re.search(r"(\d+)\s*semanas?", msg_norm)
+                    num_sem = int(m_sem.group(1)) if m_sem else None
+                    if num_sem is not None and any(
+                        w in msg_norm
+                        for w in [
+                            "superior",
+                            "mayor",
+                            "igual",
+                            "mas",
+                            "al menos",
+                            "minimo",
+                            ">=",
+                            ">",
+                        ]
+                    ):
+                        candidatos = [
+                            p for p in candidatos if p.get("duracion_semanas", 0) >= num_sem
+                        ]
+                    elif num_sem is not None and any(
+                        w in msg_norm for w in ["menor", "inferior", "<=", "<"]
+                    ):
+                        candidatos = [
+                            p for p in candidatos if p.get("duracion_semanas", 0) <= num_sem
+                        ]
+
+                    for p in candidatos:
+                        proyectos_encontrados.append(p)
+                        codigos_relevantes.add(p["codigo_proyecto"])
 
             # 2. Buscar KPIs coincidentes
             if codigos_relevantes or kw_especificas:
@@ -429,10 +496,28 @@ class FallbackEngine:
             if r.fuente:
                 archivos_fuente.add(r.fuente)
 
+        pide_duracion = any(
+            w in msg_norm for w in ["duracion", "semanas", "duraron", "tiempo", "tiempos"]
+        )
+        pide_gerente = any(
+            w in msg_norm
+            for w in ["gerente", "gerentes", "lider", "lideraron", "quienes", "asignados"]
+        )
+
         for p in proyectos_encontrados:
+            detalles = []
+            if pide_duracion:
+                detalles.append(f"duración: **{p.get('duracion_semanas', 'N/A')} semanas**")
+            if pide_gerente:
+                detalles.append(f"gerente asignado: **{p['gerente_proyecto']}**")
+
+            str_detalles = (
+                f" ({', '.join(detalles)})"
+                if detalles
+                else f". Gerente de Proyecto: {p['gerente_proyecto']}"
+            )
             lineas_resumen.append(
-                f"Para el proyecto **{p['codigo_proyecto']}** (*{p['cliente']}*), el estado registrado es `{p['estado']}`. "
-                f"Gerente de Proyecto: {p['gerente_proyecto']}."
+                f"Para el proyecto **{p['codigo_proyecto']}** (*{p['cliente']}*), el estado registrado es `{p['estado']}`{str_detalles}."
             )
             if p.get("alcance_excluido") and any(
                 w in msg_norm for w in ["emergencia", "quirofano", "excluido", "alcance"]
@@ -442,6 +527,29 @@ class FallbackEngine:
                     f"Por lo tanto, no existen variaciones de tiempos ni mediciones para dichas áreas."
                 )
             archivos_fuente.add(p["archivo_origen"])
+
+        # Si hay KPIs, resaltar aquellos directamente vinculados con la consulta
+        if kpis_encontrados:
+            for k in kpis_encontrados:
+                ind_norm = normalizar_texto(k["indicador"])
+                es_kpi_directo = any(kw in ind_norm for kw in kw_especificas) or any(
+                    w in msg_norm
+                    for w in [
+                        "espera",
+                        "oee",
+                        "paradas",
+                        "variacion",
+                        "porcentaje",
+                        "redujo",
+                        "cumplio",
+                        "meta",
+                    ]
+                )
+                if es_kpi_directo:
+                    lineas_resumen.append(
+                        f"• **{k['indicador']}** ({k['codigo_proyecto']}): El resultado oficial de cierre fue **{k['resultado']}** "
+                        f"con una variación del **{k['variacion'] or 'N/A'}** (Línea base: {k['linea_base']}, Meta: {k['meta'] or '-'}, Cumplimiento: `{k['cumplimiento']}`)."
+                    )
 
         if not lineas_resumen and kpis_encontrados:
             lineas_resumen.append(
@@ -466,15 +574,15 @@ class FallbackEngine:
                 )
                 archivos_fuente.add(k["archivo_origen"])
             secciones_respuesta.append("\n".join(tabla))
-        elif proyectos_encontrados and not reglas_encontradas:
-            secciones_respuesta.append("\n### 📊 Ficha del Proyecto")
+        elif proyectos_encontrados:
+            secciones_respuesta.append("\n### 📊 Ficha y Portafolio de Proyectos")
             tabla = [
-                "| Código | Cliente | Sector | Gerente | Estado |",
-                "| :--- | :--- | :--- | :--- | :--- |",
+                "| Código | Cliente | Sector | Duración | Gerente de Proyecto | Estado |",
+                "| :--- | :--- | :--- | :--- | :--- | :--- |",
             ]
             for p in proyectos_encontrados:
                 tabla.append(
-                    f"| {p['codigo_proyecto']} | {p['cliente']} | {p['sector']} | {p['gerente_proyecto']} | {p['estado']} |"
+                    f"| {p['codigo_proyecto']} | {p['cliente']} | {p['sector']} | {p.get('duracion_semanas', '-')} semanas | {p['gerente_proyecto']} | {p['estado']} |"
                 )
             secciones_respuesta.append("\n".join(tabla))
 

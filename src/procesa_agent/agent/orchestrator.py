@@ -135,10 +135,32 @@ class AgenteProyectos:
             logger.warning(f"Excepción en llamada LLM: {e}. Activando modo degradado determinista.")
             # Reiniciar chat en caso de error de sesión
             self._chat_session = None
+            msg_err = str(e)
+            if (
+                "429" in msg_err
+                or "resource_exhausted" in msg_err.lower()
+                or "quota" in msg_err.lower()
+            ):
+                aviso = (
+                    "⚠️ **Aviso de Cuota:** Se alcanzó el límite de solicitudes de la API de Gemini "
+                    "(Free Tier de AI Studio: 20 peticiones/día para este modelo). "
+                    "El sistema continúa operando con total precisión en **Modo Analítico Local** "
+                    "consultando directamente la base de datos relacional SQLite y el índice FTS5."
+                )
+            elif "503" in msg_err or "unavailable" in msg_err.lower():
+                aviso = (
+                    "⚠️ **Aviso de Disponibilidad:** El servicio de Google Gemini se encuentra temporalmente "
+                    "saturado (503). Operando en **Modo Analítico Local** sobre SQLite y FTS5."
+                )
+            else:
+                aviso = (
+                    f"Aviso: Operando en modo analítico local sobre SQLite ({type(e).__name__})."
+                )
+
             resultado_fallback = self.fallback_engine.responder(
                 mensaje_usuario,
                 trazabilidad,
-                aviso_error=f"Aviso: Operando en modo analítico local debido a: {e}",
+                aviso_error=aviso,
             )
             self.memory.add_turn(mensaje_usuario, resultado_fallback["respuesta"], trazabilidad)
             return resultado_fallback
