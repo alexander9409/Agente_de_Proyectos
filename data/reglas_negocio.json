@@ -1,0 +1,51 @@
+[
+  {
+    "codigo_proyecto": null,
+    "tipo": "prevalencia",
+    "titulo": "Prevalencia de la tabla oficial de resultados de cierre",
+    "descripcion": "La fuente fiable definitiva para métricas, líneas base, metas, resultados y variaciones es SIEMPRE la tabla oficial de resultados del informe de cierre. Como regla general, cuando un anexo o sección complementaria no coincida numéricamente con la tabla oficial de resultados, PREVALECE LA TABLA OFICIAL.",
+    "fuente": "Criterio metodológico general de Procesa Consultores"
+  },
+  {
+    "codigo_proyecto": null,
+    "tipo": "estado",
+    "titulo": "Distinción semántica: Proyectos cerrados vs. Cerrado con pendientes",
+    "descripcion": "Es correcto y necesario distinguir el estado 'Cerrado con pendientes'. Cuando el usuario o el enunciado habla de 'proyectos cerrados', se refiere a que la ejecución formal del proyecto concluyó en el plazo acordado, NO a que todos los proyectos hayan cerrado sin pendientes. De los cuatro proyectos, tres cuentan con estado 'Cerrado aceptado' y uno cuenta con estado 'Cerrado con pendientes'.",
+    "fuente": "Metodología de gestión de proyectos Procesa Consultores"
+  },
+  {
+    "codigo_proyecto": "PC-2025-014",
+    "tipo": "no_atribuible",
+    "titulo": "No atribuibilidad del +9% de colocación en Cooperativa Horizonte Andino",
+    "descripcion": "El incremento de +9% en el monto colocado reportado por Cooperativa Horizonte Andino (PC-2025-014) NO DEBE registrarse ni presentarse como resultado del proyecto de optimización. Es un DATO DE CONTEXTO NO ATRIBUIBLE, ya que respondió concurrentemente a una campaña comercial ejecutada en paralelo por el cliente. Debe identificarse explícitamente como no atribuible ante cualquier consulta sobre colocación o crecimiento de cartera.",
+    "fuente": "Informe_Cierre_PC-2025-014_Cooperativa_Horizonte_Andino.pdf"
+  },
+  {
+    "codigo_proyecto": "PC-2025-027",
+    "tipo": "discrepancia",
+    "titulo": "Línea base oficial de paradas no programadas (64 h/mes) en Plásticos del Pacífico",
+    "descripcion": "Para el indicador de 'Paradas no programadas' en Plásticos del Pacífico (PC-2025-027), la línea base oficial es exactamente '64 h/mes'. Este es el valor contractual y analítico sobre el que se calcularon formalmente la meta (≤ 38 h/mes), el resultado final alcanzado (31 h/mes) y la variación (-52% = -33/64). Si se consulta sobre el Anexo A (que desglosa horas por causa que sumarían una cifra distinta), se debe aclarar que por la regla de prevalencia se toma 64 h/mes de la tabla oficial de resultados.",
+    "fuente": "Informe_Cierre_PC-2025-027_Plasticos_del_Pacifico.pdf"
+  },
+  {
+    "codigo_proyecto": "PC-2025-033",
+    "tipo": "prevalencia",
+    "titulo": "Medición preliminar (-30%) vs. Cierre oficial definitivo (-24%) en Clínica Santa Lucía",
+    "descripcion": "Si un informe menciona mediciones preliminares (ej. Clínica Santa Lucía PC-2025-033, donde la medición preliminar de dic-2025 arrojó -30% pero la medición final oficial de cierre de feb-2026 arrojó -24% tras considerar la temporada alta escolar), la herramienta toma como dato oficial el resultado de cierre (-24%). Prevalece la tabla oficial de cierre, mencionando la cifra preliminar únicamente como detalle contextual aclaratorio.",
+    "fuente": "Informe_Cierre_PC-2025-033_Clinica_Santa_Lucia.docx"
+  },
+  {
+    "codigo_proyecto": "PC-2025-033",
+    "tipo": "discrepancia",
+    "titulo": "Delimitación de alcance excluido en Clínica Santa Lucía",
+    "descripcion": "El proyecto abarcó exclusivamente las 22 especialidades de Consulta Externa. Los servicios de Emergencia, Quirófanos, Hospitalización e Imagenología quedaron formalmente excluidos del alcance de la consultoría. Por lo tanto, no existen variaciones de tiempos, metas ni mediciones registradas para dichas áreas excluidas.",
+    "fuente": "Informe_Cierre_PC-2025-033_Clinica_Santa_Lucia.docx"
+  },
+  {
+    "codigo_proyecto": "PC-2026-006",
+    "tipo": "estado",
+    "titulo": "Justificación de estado 'Cerrado con pendientes' en Supermercados La Canasta",
+    "descripcion": "Supermercados La Canasta (PC-2026-006) se registró con estado 'Cerrado con pendientes' debido a que el KPI de integración de proveedores quedó en 0 de 3 proveedores conectados (No cumplido), supeditado a un upgrade del ERP programado para noviembre de 2026 y a la baja madurez tecnológica de los proveedores.",
+    "fuente": "Informe_Cierre_PC-2026-006_Supermercados_La_Canasta.pdf"
+  }
+]

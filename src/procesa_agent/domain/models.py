@@ -75,3 +75,16 @@ class FichaProyecto(BaseModel):
     proximos_pasos: List[str] = Field(
         default_factory=list, description="Recomendaciones post-cierre y fases futuras"
     )
+
+
+class ReglaNegocio(BaseModel):
+    id: Optional[int] = Field(None, description="Identificador único autoincremental")
+    codigo_proyecto: Optional[str] = Field(
+        None, description="Código de proyecto o None si es global"
+    )
+    tipo: str = Field(
+        description="Tipo de regla: prevalencia | no_atribuible | discrepancia | estado"
+    )
+    titulo: str = Field(description="Título descriptivo de la regla")
+    descripcion: str = Field(description="Contenido exacto de la regla de fiabilidad")
+    fuente: Optional[str] = Field(None, description="Archivo origen que sustenta la regla")
