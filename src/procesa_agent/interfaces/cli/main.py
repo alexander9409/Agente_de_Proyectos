@@ -1,131 +1,272 @@
 """
-Interfaz CLI por Consola Interactiva (procesa_agent/interfaces/cli/main.py)
-Bucle REPL con trazabilidad visual de herramientas, citación de fuentes
-y comandos de gestión para el Agente de Proyectos de Procesa Consultores.
+Interfaz de Línea de Comandos (CLI) de Procesa Consultores (interfaces/cli/main.py).
+Ofrece subcomandos tipados con argparse: preguntar, ingestar, estado, mcp y modo interactivo.
+Formateo rico con 'rich' si está disponible, o texto estructurado limpio por defecto.
 """
 
+import argparse
 import json
 import sys
+from typing import Any, List
 
-# Configurar salida UTF-8 en terminales de Windows
 if sys.stdout and hasattr(sys.stdout, "reconfigure"):
-    sys.stdout.reconfigure(encoding="utf-8")
-
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if sys.stderr and hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+from procesa_agent.agent.fallback import FallbackEngine
 from procesa_agent.agent.orchestrator import AgenteProyectos
 from procesa_agent.core.config_manager import ConfigManager
-from procesa_agent.infrastructure.db.connection import inicializar_bd, obtener_resumen_bd
-from procesa_agent.ingestion.extractor import ejecutar_ingesta_completa
+from procesa_agent.infrastructure.db.connection import (
+    inicializar_bd,
+    obtener_conexion,
+    obtener_resumen_bd,
+)
+from procesa_agent.ingestion.pipeline import IngestionPipeline
+from procesa_agent.tools.tools import consultar_sql
+
+# Detección de biblioteca rich para presentación avanzada
+try:
+    from rich.console import Console
+    from rich.panel import Panel
+    from rich.table import Table
+
+    TIENE_RICH = True
+    console = Console()
+except ImportError:
+    TIENE_RICH = False
+    console = None
 
 
-def imprimir_bienvenida(config_mgr: ConfigManager, resumen: dict):
-    print("=" * 75)
-    print("   PROCESA CONSULTORES · SISTEMA DE CONSULTA DE PROYECTOS")
-    print("   Agente Inteligente con SQLite, Búsqueda FTS5 y Google Gemini")
-    print("=" * 75)
-    print(
-        f"📊 Estado Base de Datos: {resumen['proyectos']} Proyectos | {resumen['kpis']} KPIs | {resumen['lecciones']} Lecciones"
-    )
-
-    api_key = config_mgr.gemini_api_key
-    if api_key:
-        mascarada = api_key[:6] + "..." + api_key[-4:] if len(api_key) > 10 else "***"
-        print(f"🔑 Gemini API Key: ACTIVA ({mascarada}) | Modelo: {config_mgr.model_name}")
+def imprimir_panel(titulo: str, contenido: str, estilo: str = "blue") -> None:
+    """Imprime un panel destacado usando rich o bordes ASCII como alternativa."""
+    if TIENE_RICH and console:
+        console.print(Panel(contenido, title=f"[bold]{titulo}[/bold]", border_style=estilo))
     else:
-        print("⚠️ Gemini API Key: NO DETECTADA.")
-        print("   (El agente operará en Modo Analítico Local con acceso directo a SQLite y FTS5)")
-        print(
-            "   Para activar Gemini, configura GEMINI_API_KEY en .env o en la UI con: streamlit run app.py"
-        )
-
-    print("-" * 75)
-    print("Escribe tu consulta o usa uno de los comandos:")
-    print("  'salir'   : Finalizar la sesión")
-    print("  'ayuda'   : Ver ejemplos de consultas sugeridas")
-    print("  'estado'  : Ver métricas actuales de la base de datos")
-    print("=" * 75)
+        linea = "=" * 70
+        print(f"\n{linea}\n  {titulo.upper()}\n{linea}\n{contenido}\n{linea}")
 
 
-def mostrar_ayuda():
-    print("\n💡 Ejemplos de consultas que puedes realizar:")
-    print("  1. ¿Cuáles fueron los resultados principales de KPIs?")
-    print("  2. ¿Qué proyectos se cerraron con pendientes y por qué?")
-    print("  3. ¿Cuánto se redujo el tiempo de espera en los proyectos de salud?")
-    print("  4. ¿Qué lecciones aprendidas se registraron sobre gestión del cambio?")
-    print("  5. ¿Qué proyectos lideró cada gerente?")
-    print("  6. ¿Qué proyectos se realizaron para Banco Pichincha? (Prueba anti-alucinación)\n")
+def imprimir_tabla(titulo: str, columnas: List[str], filas: List[List[Any]]) -> None:
+    """Imprime una tabla de datos usando rich.Table o formato tabular estándar."""
+    if TIENE_RICH and console:
+        table = Table(title=titulo)
+        for col in columnas:
+            table.add_column(col, style="cyan", no_wrap=False)
+        for fila in filas:
+            table.add_row(*[str(val) for val in fila])
+        console.print(table)
+    else:
+        print(f"\n--- {titulo} ---")
+        if not filas:
+            print("  (Sin registros)")
+            return
+        header = " | ".join(columnas)
+        sep = "-" * len(header)
+        print(header)
+        print(sep)
+        for fila in filas:
+            print(" | ".join(str(val) for val in fila))
 
 
-def formatear_resultado_tool(resultado: str, nombre_tool: str) -> str:
-    """Extrae un resumen conciso de los resultados para la traza del terminal."""
-    if nombre_tool == "consultar_sql":
-        lineas = resultado.strip().split("\n")
-        filas_datos = [linea for linea in lineas if linea.startswith("|") and "---" not in linea]
-        total_filas = max(0, len(filas_datos) - 1) if filas_datos else 0
-        return f"{total_filas} fila(s) obtenida(s)."
-    elif nombre_tool == "buscar_texto":
-        num_coincidencias = resultado.count("#### Coincidencia")
-        return f"{num_coincidencias} fragmento(s) documental(es) coincidente(s)."
-    return "Resultado procesado."
-
-
-def main():
+def cmd_estado(args: argparse.Namespace) -> None:
+    """Comando: muestra el estado integral de la base de datos y FTS5."""
     inicializar_bd()
     resumen = obtener_resumen_bd()
-    if resumen["proyectos"] == 0:
-        print("⏳ Ingestando informes iniciales...")
-        ejecutar_ingesta_completa()
-        resumen = obtener_resumen_bd()
 
+    conn = obtener_conexion()
+    cursor = conn.cursor()
+    proyectos = cursor.execute(
+        "SELECT codigo_proyecto, cliente, sector, estado FROM proyectos ORDER BY codigo_proyecto;"
+    ).fetchall()
+    conn.close()
+
+    contenido_resumen = (
+        f"• Proyectos registrados : {resumen.get('proyectos', 0)}\n"
+        f"• Métricas de KPIs      : {resumen.get('kpis', 0)}\n"
+        f"• Lecciones aprendidas  : {resumen.get('lecciones', 0)}\n"
+        f"• Secciones FTS5        : {resumen.get('fts', 0)}"
+    )
+    imprimir_panel("Estado del Repositorio de Proyectos", contenido_resumen, "green")
+
+    cols = ["Código", "Cliente", "Sector", "Estado"]
+    filas = [[p["codigo_proyecto"], p["cliente"], p["sector"], p["estado"]] for p in proyectos]
+    imprimir_tabla("Portafolio Oficial de Proyectos", cols, filas)
+
+
+def cmd_ingestar(args: argparse.Namespace) -> None:
+    """Comando: ejecuta el pipeline de ingesta modular con detección SHA-256."""
+    imprimir_panel(
+        "Pipeline de Ingesta Documental",
+        f"Iniciando ingesta... (Forzar: {args.force}, Archivo único: {args.solo or 'Todos'})",
+        "cyan",
+    )
+    pipeline = IngestionPipeline()
+    reporte = pipeline.ejecutar(force=args.force, solo_archivo=args.solo)
+
+    filas = [
+        ["Total detectados", str(reporte["total_archivos"])],
+        [
+            "Procesados con éxito",
+            ", ".join(reporte["procesados"]) if reporte["procesados"] else "Ninguno",
+        ],
+        [
+            "Omitidos (sin cambios SHA)",
+            ", ".join(reporte["omitidos"]) if reporte["omitidos"] else "Ninguno",
+        ],
+        ["Fallidos", str(len(reporte["fallidos"]))],
+    ]
+    imprimir_tabla("Resultado del Lote de Ingesta", ["Métrica / Estado", "Detalle"], filas)
+
+    if reporte["fallidos"]:
+        print("\n❌ Errores detectados:")
+        for f in reporte["fallidos"]:
+            print(f"  • {f['archivo']}: {f['error']}")
+
+
+def cmd_preguntar(args: argparse.Namespace) -> None:
+    """Comando: ejecuta una consulta en modo agente, fallback o SQL directo."""
+    inicializar_bd()
+    consulta = args.consulta
+    modo = args.modo
+
+    if modo == "sql":
+        imprimir_panel("Modo Consulta SQL Directa", f"Query: {consulta}", "yellow")
+        res = consultar_sql(consulta)
+        print(res)
+        return
+
+    if modo == "fallback":
+        engine = FallbackEngine()
+        res_dict = engine.responder(consulta)
+    else:
+        config_mgr = ConfigManager()
+        agente = AgenteProyectos(config_mgr=config_mgr)
+        res_dict = agente.responder(consulta)
+
+    if args.verbose and res_dict.get("trazabilidad"):
+        trazas = res_dict["trazabilidad"]
+        filas_traza = []
+        for t in trazas:
+            h = t.get("herramienta", "")
+            args_str = json.dumps(t.get("argumentos", {}), ensure_ascii=False)
+            filas_traza.append([h, args_str])
+        imprimir_tabla(
+            "Trazabilidad de Herramientas Utilizadas", ["Herramienta", "Argumentos"], filas_traza
+        )
+
+    imprimir_panel("Respuesta Oficial", res_dict.get("respuesta", ""), "blue")
+
+
+def cmd_mcp(args: argparse.Namespace) -> None:
+    """Comando: inicia el servidor MCP estándar en transporte stdio."""
+    imprimir_panel(
+        "Servidor MCP (Model Context Protocol)",
+        "Iniciando servidor MCP sobre stdio... Presiona Ctrl+C para detener.",
+        "magenta",
+    )
+    from procesa_agent.interfaces.mcp.server import mcp
+
+    mcp.run()
+
+
+def bucle_interactivo() -> None:
+    """Modo REPL interactivo cuando el comando se ejecuta sin argumentos."""
+    inicializar_bd()
     config_mgr = ConfigManager()
-    agente = AgenteProyectos(config_mgr)
+    agente = AgenteProyectos(config_mgr=config_mgr)
+    resumen = obtener_resumen_bd()
 
-    imprimir_bienvenida(config_mgr, resumen)
+    imprimir_panel(
+        "Procesa Consultores · CLI Interactivo",
+        f"Proyectos: {resumen.get('proyectos', 0)} | KPIs: {resumen.get('kpis', 0)} | FTS5: {resumen.get('fts', 0)}\n"
+        "Comandos disponibles: 'salir', 'estado', 'ayuda'",
+        "blue",
+    )
 
     while True:
         try:
-            entrada = input("\nConsultor > ").strip()
-            if not entrada:
+            linea = input("\nConsultor > ").strip()
+            if not linea:
                 continue
-
-            comando = entrada.lower()
-            if comando in ["salir", "exit", "quit", "q"]:
-                print("\n👋 Sesión finalizada. ¡Hasta pronto!")
+            cmd = linea.lower()
+            if cmd in ["salir", "exit", "quit", "q"]:
+                print("\n👋 Sesión interactiva finalizada.")
                 break
-            elif comando in ["ayuda", "help", "?"]:
-                mostrar_ayuda()
+            elif cmd in ["estado", "status"]:
+                cmd_estado(argparse.Namespace())
                 continue
-            elif comando in ["estado", "status"]:
-                stats = obtener_resumen_bd()
-                print(f"\n📊 Estadísticas actuales: {stats}")
+            elif cmd in ["ayuda", "help", "?"]:
+                print("\n💡 Ejemplos de consulta:")
+                print("  • ¿Cuáles fueron los resultados principales de KPIs?")
+                print("  • ¿Qué proyectos se cerraron con pendientes y por qué?")
+                print("  • ¿Qué lecciones aprendidas se registraron sobre gestión del cambio?\n")
                 continue
 
-            # Procesar consulta con el agente
-            respuesta_dict = agente.responder(entrada)
-
-            # Imprimir trazabilidad de herramientas utilizadas
-            trazabilidad = respuesta_dict.get("trazabilidad", [])
+            res = agente.responder(linea)
+            trazabilidad = res.get("trazabilidad", [])
             if trazabilidad:
-                print()
-                for traza in trazabilidad:
-                    t_name = traza.get("herramienta", "desconocida")
-                    t_args = json.dumps(traza.get("argumentos", {}), ensure_ascii=False)
-                    t_res_raw = traza.get("resultado", "")
-                    resumen_res = formatear_resultado_tool(t_res_raw, t_name)
+                for t in trazabilidad:
+                    print(f"  [Tool] {t.get('herramienta')}: {t.get('argumentos')}")
 
-                    print(f"[TOOL CALL] -> Herramienta: {t_name} | Args: {t_args}")
-                    print(f"[TOOL RESULT] -> {resumen_res}")
-                print()
-
-            # Imprimir respuesta final
-            print("[RESPUESTA]:")
-            print(respuesta_dict.get("respuesta", ""))
-            print("-" * 75)
+            print("\n[RESPUESTA]:")
+            print(res.get("respuesta", ""))
+            print("-" * 65)
 
         except (KeyboardInterrupt, EOFError):
-            print("\n\n👋 Operación cancelada. Sesión terminada.")
+            print("\n👋 Sesión interrumpida.")
             break
-        except Exception as e:
-            print(f"\n❌ Error al procesar consulta: {e}")
+
+
+def main() -> None:
+    """Punto de entrada principal con parser de subcomandos."""
+    parser = argparse.ArgumentParser(
+        prog="procesa",
+        description="CLI Oficial de Procesa Consultores · Inteligencia Operativa de Proyectos",
+    )
+    subparsers = parser.add_subparsers(dest="subcomando", help="Subcomandos disponibles")
+
+    # Subcomando: preguntar
+    p_preguntar = subparsers.add_parser("preguntar", help="Realiza una consulta al agente")
+    p_preguntar.add_argument("consulta", type=str, help="Texto de la consulta")
+    p_preguntar.add_argument(
+        "--modo",
+        choices=["agente", "fallback", "sql"],
+        default="agente",
+        help="Modo de ejecución de la consulta (default: agente)",
+    )
+    p_preguntar.add_argument(
+        "--verbose", action="store_true", help="Muestra la trazabilidad de herramientas utilizadas"
+    )
+
+    # Subcomando: ingestar
+    p_ingestar = subparsers.add_parser(
+        "ingestar", help="Ejecuta el pipeline de ingesta de informes"
+    )
+    p_ingestar.add_argument(
+        "--force", action="store_true", help="Fuerza el reprocesamiento ignorando hashes SHA-256"
+    )
+    p_ingestar.add_argument(
+        "--solo", type=str, default=None, help="Nombre del archivo individual a procesar"
+    )
+
+    # Subcomando: estado
+    subparsers.add_parser("estado", help="Muestra el resumen y estado del repositorio de proyectos")
+
+    # Subcomando: mcp
+    subparsers.add_parser("mcp", help="Inicia el servidor MCP (Model Context Protocol)")
+
+    args = parser.parse_args()
+
+    if args.subcomando == "preguntar":
+        cmd_preguntar(args)
+    elif args.subcomando == "ingestar":
+        cmd_ingestar(args)
+    elif args.subcomando == "estado":
+        cmd_estado(args)
+    elif args.subcomando == "mcp":
+        cmd_mcp(args)
+    else:
+        bucle_interactivo()
 
 
 if __name__ == "__main__":

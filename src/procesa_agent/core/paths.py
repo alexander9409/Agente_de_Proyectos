@@ -7,6 +7,7 @@ from pathlib import Path
 
 # Raíz del proyecto (directorio Agente_de_Proyectos)
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
+BASE_DIR = PROJECT_ROOT
 
 # Directorios de datos y fichas
 DATA_DIR = PROJECT_ROOT / "data"

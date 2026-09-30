@@ -29,9 +29,10 @@ class AgenteProyectos:
         memory: Optional[ConversationMemory] = None,
         prompt_loader: Optional[PromptLoader] = None,
         db_path: Optional[str] = None,
+        config_mgr: Optional[Any] = None,
     ) -> None:
         settings = get_settings()
-        self.db_path = db_path or settings.sqlite_db_path
+        self.db_path = db_path or getattr(config_mgr, "db_path", None) or settings.sqlite_db_path
         self.tool_registry = tool_registry or get_default_registry()
         self.prompt_loader = prompt_loader or PromptLoader(db_path=self.db_path)
         self.memory = memory or ConversationMemory(max_turns=10)
@@ -40,6 +41,12 @@ class AgenteProyectos:
         # Configurar proveedor de LLM
         if llm_provider is not None:
             self.llm_provider: Optional[LLMProvider] = llm_provider
+        elif config_mgr is not None and getattr(config_mgr, "gemini_api_key", None):
+            self.llm_provider = GeminiProvider(
+                api_key=config_mgr.gemini_api_key,
+                model_name=getattr(config_mgr, "model_name", settings.model_name),
+                temperature=float(getattr(config_mgr, "temperature", settings.temperature)),
+            )
         elif settings.gemini_api_key:
             self.llm_provider = GeminiProvider(
                 api_key=settings.gemini_api_key,
