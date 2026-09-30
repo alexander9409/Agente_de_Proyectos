@@ -247,28 +247,41 @@ python -m pytest tests/test_agent.py -v
 
 ## 9. 💰 Modelo de Estimación de Costos (50 Consultores)
 
-### Escenario de Uso
+### Escenario de Uso y Supuestos Operativos
 - **Equipo de consultoría:** 50 consultores activos.
 - **Volumen de consultas:** 6 consultas diarias por consultor = **300 queries/día**.
 - **Jornada mensual:** 22 días hábiles = **6.600 queries/mes**.
 
 ### Consumo Estimado de Tokens por Consulta
 - **Tokens de Entrada (Prompt + Esquema DB + Historial + Resultados Tool):** ~2.000 tokens / query.
-- **Tokens de Salida (Respuesta estructurada en lenguaje natural):** ~400 tokens / query.
-- **Total Mensual Input:** $6.600 \times 2.000 = 13.200.000$ tokens (13,2 M tokens).
-- **Total Mensual Output:** $6.600 \times 400 = 2.640.000$ tokens (2,64 M tokens).
+- **Tokens de Salida (Respuesta estructurada en lenguaje natural y citas):** ~400 tokens / query.
+- **Total Mensual Input:** 6.600 × 2.000 = 13.200.000 tokens (**13,2 M tokens**).
+- **Total Mensual Output:** 6.600 × 400 = 2.640.000 tokens (**2,64 M tokens**).
 
-### Tarifario Oficial de Google Gemini API (Referencia 2025/2026)
+---
 
-| Concepto | Gemini 2.5 Flash / 1.5 Flash | Gemini 1.5 Pro |
-| :--- | :--- | :--- |
-| **Tarifa Input (por 1M tokens)** | \$0,075 USD | \$1,250 USD |
-| **Tarifa Output (por 1M tokens)** | \$0,300 USD | \$5,000 USD |
-| **Costo Mensual Input (13,2 M)** | \$0,99 USD | \$16,50 USD |
-| **Costo Mensual Output (2,64 M)** | \$0,79 USD | \$13,20 USD |
-| **COSTO TOTAL MENSUAL (50 usuarios)** | **\$1,78 USD / mes** | **\$29,70 USD / mes** |
-| **Costo promedio por consultor / mes** | **\$0,036 USD** | **\$0,594 USD** |
+### Tarifario y Comparativa de Costos por Modelo de API
 
-### Recomendación Estratégica de Costo-Efectividad:
-1. **Modelo Primario de Producción:** Configurar `gemini-2.5-flash` por defecto. Con un costo total inferior a **\$2 USD mensuales para todo el equipo**, ofrece latencias inferiores a 800 ms y precisión impecable en Function Calling y síntesis.
-2. **Modelo de Escalado:** Reservar `gemini-1.5-pro` (seleccionable con un clic en la interfaz web de Streamlit) únicamente para análisis comparativos multidimensionales o síntesis de alta complejidad analítica.
+| Concepto | Gemini 2.5 / 1.5 Flash | Gemini 3.5 Flash *(Proyectado)* | Gemini 3.8 Flash *(High-Capacity)* | Gemini 1.5 / Pro *(Tier Avanzado)* |
+| :--- | :--- | :--- | :--- | :--- |
+| **Tarifa Input (por 1M tokens)** | $0,075 USD | $0,100 USD | $0,150 USD | $1,250 USD |
+| **Tarifa Output (por 1M tokens)** | $0,300 USD | $0,400 USD | $0,600 USD | $5,000 USD |
+| **Costo Mensual Input (13,2 M)** | $0,99 USD | $1,32 USD | $1,98 USD | $16,50 USD |
+| **Costo Mensual Output (2,64 M)** | $0,79 USD | $1,06 USD | $1,58 USD | $13,20 USD |
+| **COSTO TOTAL MENSUAL (50 usuarios)** | **$1,78 USD / mes** | **$2,38 USD / mes** | **$3,56 USD / mes** | **$29,70 USD / mes** |
+| **Costo promedio por consultor / mes** | **$0,036 USD** | **$0,048 USD** | **$0,071 USD** | **$0,594 USD** |
+
+---
+
+### Análisis y Recomendación Estratégica
+
+1. **Modelo de Producción Predeterminado (Gemini 2.5 / 3.5 Flash):**
+   - Para flujos estándar de Function Calling (traducción a SQL y búsquedas FTS5), la serie Flash mantiene un costo mensual total inferior a **$2,50 USD para toda la organización**.
+   - Garantiza tiempos de respuesta inferiores a 1 segundo por interacción sin penalizar el presupuesto operativo.
+
+2. **Modelo de Mayor Contexto / Capacidad (Gemini 3.8 Flash):**
+   - Representa un punto de equilibrio óptimo (~**$3,56 USD/mes**) si se incrementa la ventana de contexto para procesar múltiples informes consolidados simultáneamente o documentos con anexos densos.
+
+3. **Modelo de Escalado Analítico (Gemini Pro):**
+   - Configurable directamente desde la interfaz web (Streamlit) mediante la tabla de `configuraciones`.
+   - Se reserva bajo demanda para consultas que requieran razonamiento multidocumento complejo, correlación transversal de lecciones aprendidas o generación de síntesis ejecutivas extensas, manteniendo un techo controlado de **~$30 USD mensuales**.
