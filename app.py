@@ -43,49 +43,214 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Estilos CSS personalizados para mejorar legibilidad de tablas, fuentes y mensajes
+# Estilos CSS personalizados para forzar interfaz blanca moderna estilo SaaS corporativo
 st.markdown("""
 <style>
-    /* Estilo para las fuentes documentales */
+    /* 1. Forzar tema blanco en todo el contenedor principal y sidebar */
+    html, body, [data-testid="stAppViewContainer"], .stApp {
+        background-color: #FFFFFF !important;
+        color: #0F172A !important;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+    }
+
+    [data-testid="stSidebar"] {
+        background-color: #F8FAFC !important;
+        border-right: 1px solid #E2E8F0 !important;
+    }
+    [data-testid="stSidebar"] * {
+        color: #1E293B !important;
+    }
+
+    /* 2. Barra de proceso / Stepper horizontal superior */
+    .stepper-container {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 16px;
+        padding: 12px 20px;
+        background: #FFFFFF;
+        border: 1px solid #E2E8F0;
+        border-radius: 10px;
+        margin-bottom: 18px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    }
+    .step-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.86rem;
+        font-weight: 600;
+        color: #64748B;
+    }
+    .step-item.active {
+        color: #1D4ED8;
+    }
+    .step-badge {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background-color: #E2E8F0;
+        color: #475569;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.76rem;
+        font-weight: 700;
+    }
+    .step-badge.active {
+        background-color: #2563EB;
+        color: #FFFFFF;
+    }
+    .step-divider {
+        flex: 1;
+        height: 1px;
+        background-color: #E2E8F0;
+        max-width: 60px;
+    }
+
+    /* 3. Píldoras de Deals / Etiquetas contextuales */
+    .deal-pill {
+        display: inline-block;
+        background-color: #EFF6FF;
+        color: #1D4ED8;
+        border: 1px solid #BFDBFE;
+        border-radius: 9999px;
+        font-size: 0.74rem;
+        font-weight: 600;
+        padding: 2px 10px;
+        margin-right: 6px;
+        margin-bottom: 6px;
+    }
+
+    /* 4. Encabezados corporativos */
+    h1, h2, h3, h4 {
+        color: #0F172A !important;
+        font-weight: 700 !important;
+        letter-spacing: -0.015em;
+    }
+    .app-header-title {
+        font-size: 1.45rem;
+        font-weight: 700;
+        color: #0F172A;
+        margin-bottom: 2px;
+    }
+    .app-header-subtitle {
+        font-size: 0.84rem;
+        color: #64748B;
+        margin-bottom: 12px;
+    }
+
+    /* 5. Cajas y tarjetas blancas */
+    .saas-card {
+        background: #FFFFFF;
+        border: 1px solid #E2E8F0;
+        border-radius: 10px;
+        padding: 16px 20px;
+        margin-bottom: 16px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+    /* 6. Botones de acción rápida estilo SaaS */
+    .stButton > button {
+        background-color: #FFFFFF !important;
+        color: #1E293B !important;
+        border: 1px solid #CBD5E1 !important;
+        border-radius: 8px !important;
+        font-weight: 500 !important;
+        font-size: 0.86rem !important;
+        padding: 6px 14px !important;
+        transition: all 0.15s ease-in-out !important;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.02) !important;
+    }
+    .stButton > button:hover {
+        background-color: #F8FAFC !important;
+        border-color: #93C5FD !important;
+        color: #1D4ED8 !important;
+        box-shadow: 0 2px 4px rgba(37,99,235,0.08) !important;
+    }
+
+    /* Botón principal del sidebar */
+    [data-testid="stSidebar"] .stButton > button {
+        background-color: #2563EB !important;
+        color: #FFFFFF !important;
+        border: 1px solid #1D4ED8 !important;
+        font-weight: 600 !important;
+    }
+    [data-testid="stSidebar"] .stButton > button:hover {
+        background-color: #1D4ED8 !important;
+        color: #FFFFFF !important;
+    }
+
+    /* 7. Mensajes de chat */
+    [data-testid="stChatMessage"] {
+        background-color: #FFFFFF !important;
+        border: 1px solid #E2E8F0 !important;
+        border-radius: 10px !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
+        padding: 14px 18px !important;
+        margin-bottom: 12px !important;
+        color: #0F172A !important;
+    }
+    [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) {
+        background-color: #F0F7FF !important;
+        border-color: #BAE6FD !important;
+    }
+
+    /* 8. Badge de fuentes documentales */
     .badge-fuente {
         display: inline-block;
-        background-color: #e8f0fe;
-        color: #1a73e8;
+        background-color: #EFF6FF;
+        color: #1D4ED8;
         padding: 4px 10px;
         border-radius: 6px;
         font-weight: 600;
-        font-size: 0.88em;
-        margin: 3px 0;
-        border: 1px solid #c2e7ff;
+        font-size: 0.86em;
+        margin: 4px 0;
+        border: 1px solid #BFDBFE;
     }
-    /* Estilo para títulos de secciones del bot */
-    h3 {
-        color: #1f2937;
-        margin-top: 1.2rem !important;
-        margin-bottom: 0.6rem !important;
-        font-weight: 700;
+
+    /* 9. Pestañas (Tabs) */
+    .stTabs [data-baseweb="tab-list"] {
+        border-bottom: 1px solid #E2E8F0;
+        gap: 8px;
     }
-    /* Mejora en la visualización de tablas Markdown estándar */
+    .stTabs [data-baseweb="tab"] {
+        background-color: transparent !important;
+        color: #64748B !important;
+        font-weight: 600;
+        padding: 8px 16px;
+        border-radius: 6px 6px 0 0;
+    }
+    .stTabs [aria-selected="true"] {
+        color: #2563EB !important;
+        border-bottom: 2px solid #2563EB !important;
+    }
+
+    /* 10. Tablas Markdown y DataFrames */
     table {
         width: 100%;
         border-collapse: collapse;
         margin: 12px 0;
-        font-size: 0.95em;
+        font-size: 0.92em;
+        background-color: #FFFFFF;
+        border: 1px solid #E2E8F0;
+        border-radius: 8px;
+        overflow: hidden;
     }
     th {
-        background-color: #f3f4f6;
-        color: #111827;
-        font-weight: 600;
-        padding: 8px 12px;
-        border: 1px solid #e5e7eb;
-        text-align: left;
+        background-color: #F8FAFC !important;
+        color: #0F172A !important;
+        font-weight: 600 !important;
+        padding: 9px 12px !important;
+        border: 1px solid #E2E8F0 !important;
     }
     td {
-        padding: 8px 12px;
-        border: 1px solid #e5e7eb;
+        padding: 9px 12px !important;
+        border: 1px solid #E2E8F0 !important;
+        color: #1E293B !important;
     }
     tr:nth-child(even) {
-        background-color: #f9fafb;
+        background-color: #F8FAFC !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -266,6 +431,38 @@ def main():
         if st.button("🗑️ Limpiar Historial de Chat", use_container_width=True):
             st.session_state.mensajes = []
             st.rerun()
+
+    # ==========================================
+    # ENCABEZADO Y STEPPER TIPO SAAS CORPORATIVO
+    # ==========================================
+    st.markdown("""
+    <div class="stepper-container">
+        <div class="step-item active">
+            <div class="step-badge active">1</div>
+            <span>Informes Ingeridos (4)</span>
+        </div>
+        <div class="step-divider"></div>
+        <div class="step-item active">
+            <div class="step-badge active">2</div>
+            <span>Base Relacional & FTS5</span>
+        </div>
+        <div class="step-divider"></div>
+        <div class="step-item active">
+            <div class="step-badge active">3</div>
+            <span>Agente Multi-Herramienta</span>
+        </div>
+    </div>
+    <div class="app-header-title">Consultor de Inteligencia Operativa y Proyectos</div>
+    <div class="app-header-subtitle">
+        Módulo: Consultoría de Procesos &nbsp;|&nbsp; Registro: 4 proyectos cerrados &nbsp;·&nbsp; Firma: <b>Procesa Consultores</b>
+    </div>
+    <div style="margin-bottom: 16px;">
+        <span class="deal-pill">Auditoría Operativa</span>
+        <span class="deal-pill">Lean & TPM</span>
+        <span class="deal-pill">Cero Alucinaciones</span>
+        <span class="deal-pill">SQLite + FTS5</span>
+    </div>
+    """, unsafe_allow_html=True)
 
     # ==========================================
     # PESTAÑAS PRINCIPALES DE LA APLICACIÓN

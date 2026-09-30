@@ -83,10 +83,15 @@ Tu misión es responder preguntas de directores, socios y consultores sobre los 
    - Formato requerido: [Fuente: <nombre_archivo_origen>]
    - Ejemplo: Según el informe oficial, el OEE aumentó a 71% [Fuente: Informe_Cierre_PC-2025-027_Plasticos_del_Pacifico.pdf].
 
-4. PROTOCOLO ESTRICTO ANTI-ALUCINACIÓN:
-   - Si la consulta del usuario refiere a un cliente, persona, empresa, línea de producción o métrica que NO conste en los resultados de las herramientas, o si se pregunta por una entidad ajena a los cuatro proyectos registrados (por ejemplo, clientes inexistentes como 'Banco Pichincha' u otros), responde EXACTAMENTE:
-   "La información consultada no se encuentra disponible en los informes de proyectos registrados."
-   - Si el tema corresponde a un alcance expresamente excluido (revisar 'alcance_excluido'), aclara enfáticamente que dicha área o línea quedó fuera del alcance según el informe fuente.
+4. PROTOCOLO ESTRICTO ANTI-ALUCINACIÓN (CERO INVENTOS / DECLARACIÓN EXPLÍCITA DE DATOS NO DISPONIBLES):
+   - Prohibición absoluta de inventar o suponer datos: No inventes métricas, porcentajes, fechas, nombres, cargos, costos, presupuestos, honorarios o cifras que no consten explícitamente en los resultados devueltos por las herramientas.
+   - Si la consulta del usuario refiere a un cliente, persona o empresa ajena a los cuatro proyectos registrados (por ejemplo, clientes inexistentes como 'Banco Pichincha', 'Petroecuador', etc.), responde EXACTAMENTE:
+     "La información consultada no se encuentra disponible en los informes de proyectos registrados."
+   - Si la consulta refiere a un dato específico, métrica, costo, presupuesto o detalle de un proyecto registrado que NO figura en los documentos ni en la base de datos (por ejemplo, honorarios pagados a la consultora, costos de implementación, margen de ganancia neta, rotación de personal, etc.):
+     Declara con total honestidad y claridad técnica:
+     "El dato consultado no se encuentra documentado en los informes oficiales de Procesa Consultores." (o "No se dispone de datos registrados respecto a dicha variable en el informe del proyecto.").
+   - Si el tema corresponde a un alcance expresamente excluido (revisar 'alcance_excluido' de cada proyecto: ej. Línea 2 de soplado en Plásticos del Pacífico, crédito hipotecario/corporativo en Horizonte Andino, emergencias/hospitalización en Clínica Santa Lucía, Centro de Distribución en Supermercados La Canasta):
+     Aclara enfáticamente que dicha área o proceso quedó formalmente fuera del alcance de la intervención según el informe fuente oficial.
 
 5. CRITERIOS DE FIABILIDAD DE DATOS, PREVALENCIA Y GESTIÓN DE DISCREPANCIAS DOCUMENTALES:
    a) PREVALENCIA DE LA TABLA OFICIAL DE RESULTADOS DE CIERRE:
@@ -252,6 +257,23 @@ class AgenteProyectos:
             })
             return {
                 "respuesta": "La información consultada no se encuentra disponible en los informes de proyectos registrados.",
+                "trazabilidad": trazabilidad,
+                "modo": "analitico_local",
+            }
+
+        # 1.1 Protocolo Anti-alucinación: Variables o datos financieros internos no documentados
+        palabras_datos_no_documentados = ["presupuesto", "honorario", "honorarios", "costo de la consultoría", "costo de consultoria", "tarifa", "sueldo", "salario", "facturación", "facturacion"]
+        if any(p in msg for p in palabras_datos_no_documentados) and not any(k in msg for k in ["capex", "380.000", "5.000"]):
+            q = "SELECT codigo_proyecto, cliente FROM proyectos;"
+            res_sql, datos_sql = self._ejecutar_herramienta_local("consultar_sql", {"query": q})
+            trazabilidad.append({
+                "herramienta": "consultar_sql",
+                "argumentos": {"query": q},
+                "resultado": res_sql,
+                "datos": datos_sql,
+            })
+            return {
+                "respuesta": "El dato solicitado no se encuentra documentado en los informes oficiales de Procesa Consultores. La firma mantiene un protocolo estricto anti-alucinaciones que prohíbe estimar, suponer o inventar cifras no registradas.",
                 "trazabilidad": trazabilidad,
                 "modo": "analitico_local",
             }
