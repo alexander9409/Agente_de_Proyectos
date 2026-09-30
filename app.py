@@ -222,7 +222,7 @@ def main():
             help="Clave API de Google AI Studio / Gemini. Se prioriza la almacenada en SQLite.",
         )
 
-        modelos_disponibles = ["gemini-2.5-flash", "gemini-1.5-pro", "gemini-2.0-flash"]
+        modelos_disponibles = ["gemini-3.8-flash", "gemini-3.5-flash", "gemini-2.5-flash", "gemini-1.5-pro"]
         modelo_actual = config_mgr.model_name
         idx_modelo = modelos_disponibles.index(modelo_actual) if modelo_actual in modelos_disponibles else 0
         select_model = st.selectbox("Modelo", modelos_disponibles, index=idx_modelo)

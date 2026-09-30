@@ -30,7 +30,7 @@ class ConfigManager:
 
     DEFAULTS = {
         "gemini_api_key": None,
-        "model_name": "gemini-2.5-flash",
+        "model_name": "gemini-3.8-flash",
         "temperature": "0.1",
     }
 

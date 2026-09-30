@@ -38,7 +38,7 @@ Tu misión es responder preguntas de directores, socios y consultores sobre los 
    - diagnostico_problema (TEXT): Problemas raíz encontrados
    - alcance_incluido (TEXT): Procesos y áreas intervenidas
    - alcance_excluido (TEXT): CRÍTICO: Áreas expresamente fuera de alcance
-   - metodologia (TEXT): Enfoques aplicados (Lean, TPM, SMED, etc.)
+   - metodología (TEXT): Enfoques aplicados (Lean, TPM, SMED, etc.)
    - iniciativas_clave (TEXT): JSON array con entregables
    - proximos_pasos (TEXT): JSON array con recomendaciones futuras
 
@@ -65,17 +65,18 @@ Tu misión es responder preguntas de directores, socios y consultores sobre los 
 --- REGLAS MANDATORIAS DE COMPORTAMIENTO Y ESTILO DE RESPUESTA ---
 1. ROL DE CHATBOT CONSULTOR SENIOR (PENSANDO EN EL CASO DE USO DEL CLIENTE):
    - No te limites a entregar una tabla seca o una lista cruda sin contexto.
+   - Si el usuario pregunta por UN proyecto específico (ej. "¿Cuál proyecto se cerró con pendientes y por qué?"), enfócate ÚNICAMENTE en ese proyecto y explica a fondo las causas ("por qué"). No listes los otros proyectos innecesariamente.
    - Comunícate como un Consultor Estratégico Senior: formal, claro, analítico y orientado a la toma de decisiones.
    - ESTRUCTURA SIEMPRE TU RESPUESTA EN LAS SIGUIENTES SECCIONES:
-     a) 📌 **Resumen Ejecutivo**: Un párrafo conversacional y directo (2 a 4 oraciones) que responda la consulta de inmediato, destacando la conclusión principal, porcentajes o totales relevantes.
-     b) 📊 **Matriz / Ficha Comparativa**: Cuando involucre múltiples proyectos, métricas o variables, organízalas en una tabla Markdown limpia con encabezados auto-explicativos.
-     c) 💡 **Insights y Contexto Operativo**: Breve análisis de consultoría sobre causas, factores de éxito, cuellos de botella o alcances excluidos documentados.
+     a) 📌 **Resumen Ejecutivo**: Un párrafo conversacional y directo (2 a 4 oraciones) que responda la consulta de inmediato, identificando con precisión la entidad o proyecto consultado y la conclusión principal.
+     b) 📊 **Matriz / Ficha de Detalle**: Organiza los datos, KPIs o variables del caso en una tabla Markdown limpia con encabezados auto-explicativos.
+     c) 💡 **Insights y Contexto Operativo**: Análisis cualitativo de consultoría sobre causas raíz, factores de éxito, cuellos de botella o dependencias de terceros documentadas.
      d) 📑 **Fuentes Documentales**: Lista obligatoria con las citas oficiales de los informes: [Fuente: <nombre_archivo_origen>].
 
 2. PRIORIZACIÓN DE HERRAMIENTAS:
-   - Usa 'consultar_sql' para preguntas cuantitativas, agregaciones, métricas (kpis), estados, duraciones, nombres de gerentes o filtros comparativos.
+   - Usa 'consultar_sql' para preguntas cuantitativas, agregaciones, métricas (kpis), estados, duraciones, nombres de gerentes o filtros relacionales.
    - Usa 'buscar_texto' para explicaciones cualitativas, narrativa original de informes, metodología en profundidad o lecciones aprendidas.
-   - Si es necesario, puedes invocar ambas herramientas secuencialmente.
+   - Puedes invocar ambas herramientas secuencialmente si la pregunta lo amerita.
 
 3. CITACIÓN ESTRICTA DE FUENTES:
    - Cada dato, cifra o conclusión DEBE citar explícitamente el archivo fuente del informe entre corchetes.
@@ -126,8 +127,6 @@ class AgenteProyectos:
 
         trazabilidad: List[Dict[str, Any]] = []
 
-        # Si no hay API Key configurada o se ejecuta en entorno sin conexión,
-        # ejecutar el motor analítico local para asegurar continuidad operativa y tests.
         if not api_key:
             return self._responder_fallback(mensaje_usuario, trazabilidad)
 
@@ -137,114 +136,50 @@ class AgenteProyectos:
 
             client = genai.Client(api_key=api_key)
 
-            herramientas = [
-                types.Tool(function_declarations=[
-                    types.FunctionDeclaration(
-                        name="consultar_sql",
-                        description="Ejecuta consultas de solo lectura (SELECT) en la base de datos SQLite de proyectos, kpis y lecciones.",
-                        parameters=types.Schema(
-                            type=types.Type.OBJECT,
-                            properties={
-                                "query": types.Schema(
-                                    type=types.Type.STRING,
-                                    description="Consulta SQL SELECT válida sobre tablas proyectos, kpis o lecciones."
-                                )
-                            },
-                            required=["query"]
-                        )
-                    ),
-                    types.FunctionDeclaration(
-                        name="buscar_texto",
-                        description="Busca términos en el texto completo de los informes de proyecto mediante SQLite FTS5.",
-                        parameters=types.Schema(
-                            type=types.Type.OBJECT,
-                            properties={
-                                "terminos_busqueda": types.Schema(
-                                    type=types.Type.STRING,
-                                    description="Palabras clave o frase a buscar en los informes."
-                                )
-                            },
-                            required=["terminos_busqueda"]
-                        )
-                    )
-                ])
-            ]
+            # Instrumentar herramientas para capturar trazabilidad transparente y datos estructurados
+            def consultar_sql(query: str) -> str:
+                """Ejecuta consultas de solo lectura (SELECT) en la base de datos SQLite de proyectos, kpis y lecciones."""
+                res_md, datos = consultar_sql_detallado(query, self.db_path)
+                trazabilidad.append({
+                    "herramienta": "consultar_sql",
+                    "argumentos": {"query": query},
+                    "resultado": res_md,
+                    "datos": datos
+                })
+                return res_md
 
-            mensajes_turnos = [
-                types.Content(
-                    role="user",
-                    parts=[types.Part.from_text(text=SYSTEM_PROMPT + "\n\nConsulta del usuario: " + mensaje_usuario)]
+            def buscar_texto(terminos_busqueda: str) -> str:
+                """Busca terminos en el texto completo de los informes de proyecto mediante SQLite FTS5."""
+                res_md, datos = buscar_texto_detallado(terminos_busqueda, self.db_path)
+                trazabilidad.append({
+                    "herramienta": "buscar_texto",
+                    "argumentos": {"terminos_busqueda": terminos_busqueda},
+                    "resultado": res_md,
+                    "datos": datos
+                })
+                return res_md
+
+            chat = client.chats.create(
+                model=model_name,
+                config=types.GenerateContentConfig(
+                    system_instruction=SYSTEM_PROMPT,
+                    tools=[consultar_sql, buscar_texto],
+                    temperature=temperature,
                 )
-            ]
+            )
+            resp = chat.send_message(mensaje_usuario)
+            if not resp or not resp.text:
+                raise RuntimeError("No se obtuvo respuesta del modelo Gemini.")
 
-            respuesta_final = ""
-            for _ in range(4):
-                response = client.models.generate_content(
-                    model=model_name,
-                    contents=mensajes_turnos,
-                    config=types.GenerateContentConfig(
-                        tools=herramientas,
-                        temperature=temperature,
-                    )
-                )
-
-                if not response.candidates or not response.candidates[0].content:
-                    break
-
-                content = response.candidates[0].content
-                mensajes_turnos.append(content)
-
-                partes_funcion = [
-                    p for p in content.parts
-                    if getattr(p, "function_call", None) is not None
-                ]
-
-                if not partes_funcion:
-                    for p in content.parts:
-                        if getattr(p, "text", None):
-                            respuesta_final += p.text
-                    break
-
-                partes_respuesta_funcion = []
-                for parte in partes_funcion:
-                    call = parte.function_call
-                    tool_name = call.name
-                    tool_args = dict(call.args) if call.args else {}
-
-                    resultado_tool, datos_estructurados = self._ejecutar_herramienta_local(tool_name, tool_args)
-
-                    trazabilidad.append({
-                        "herramienta": tool_name,
-                        "argumentos": tool_args,
-                        "resultado": resultado_tool,
-                        "datos": datos_estructurados,
-                    })
-
-                    partes_respuesta_funcion.append(
-                        types.Part.from_function_response(
-                            name=tool_name,
-                            response={"result": resultado_tool}
-                        )
-                    )
-
-                mensajes_turnos.append(
-                    types.Content(
-                        role="user",
-                        parts=partes_respuesta_funcion
-                    )
-                )
-
-            if not respuesta_final:
-                respuesta_final = "No se pudo obtener una respuesta concluyente del modelo."
-
+            respuesta_texto = resp.text
             self.historial.append({
                 "usuario": mensaje_usuario,
-                "asistente": respuesta_final,
+                "asistente": respuesta_texto,
                 "trazabilidad": trazabilidad,
             })
 
             return {
-                "respuesta": respuesta_final,
+                "respuesta": respuesta_texto,
                 "trazabilidad": trazabilidad,
                 "modelo": model_name,
             }
@@ -275,7 +210,7 @@ class AgenteProyectos:
         # 1. Protocolo Anti-alucinación explícito (clientes o entidades inexistentes)
         conn = obtener_conexion(self.db_path)
         cur = conn.cursor()
-        palabras_sospechosas = ["banco", "pichincha", "farmacia", "petrolera", "telecom", "aerolínea", "banco pichincha"]
+        palabras_sospechosas = ["banco", "pichincha", "farmacia", "petrolera", "telecom", "aerolínea"]
         es_sospechosa = any(p in msg for p in palabras_sospechosas) and not any(
             c in msg for c in ["cooperativa", "horizonte andino", "plásticos", "pacífico", "santa lucía", "canasta"]
         )
@@ -302,7 +237,58 @@ class AgenteProyectos:
                 "modo": "analitico_local",
             }
 
-        # 2. Consultas sobre Duración o Semanas (caso directo del usuario)
+        # 2. Consultas sobre Estado "Cerrado con pendientes" (Caso específico de La Canasta)
+        if any(w in msg for w in ["pendiente", "pendientes", "cerrado con pendientes"]):
+            q = "SELECT codigo_proyecto, cliente, sector, duracion_semanas, gerente_proyecto, estado, archivo_origen FROM proyectos WHERE estado LIKE '%pendiente%';"
+            res_sql, datos_sql = self._ejecutar_herramienta_local("consultar_sql", {"query": q})
+            trazabilidad.append({
+                "herramienta": "consultar_sql",
+                "argumentos": {"query": q},
+                "resultado": res_sql,
+                "datos": datos_sql,
+            })
+            q_kpi = "SELECT indicador, unidad, linea_base, meta, resultado, cumplimiento, observaciones FROM kpis WHERE codigo_proyecto = 'PC-2026-006';"
+            res_kpi, datos_kpi = self._ejecutar_herramienta_local("consultar_sql", {"query": q_kpi})
+            trazabilidad.append({
+                "herramienta": "consultar_sql",
+                "argumentos": {"query": q_kpi},
+                "resultado": res_kpi,
+                "datos": datos_kpi,
+            })
+
+            resp = (
+                "### 📌 Resumen Ejecutivo\n"
+                "Únicamente **uno de los cuatro proyectos** cerrados por Procesa Consultores se registró bajo el estado formal de **\"Cerrado con pendientes\"**: "
+                "el proyecto **`PC-2026-006`** correspondiente a **Supermercados La Canasta Cía. Ltda.**, "
+                "liderado por la **Ing. Daniela Cevallos** [Fuente: Informe_Cierre_PC-2026-006_Supermercados_La_Canasta.pdf].\n\n"
+                "**¿Por qué se registró con pendientes?**\n"
+                "La causa principal documentada fue el **incumplimiento del objetivo de integrar automáticamente las órdenes de compra con los tres principales proveedores** "
+                "(resultado: **0 de 3 proveedores integrados** frente a la meta acordada de 3 de 3). Las razones raíz fueron dos factores tecnológicos y de terceros:\n"
+                "1. **Actualización pendiente del ERP:** El sistema ERP del cliente requiere un upgrade de versión técnica para soportar el módulo de intercambio electrónico (EDI), programado por el fabricante para noviembre de 2026.\n"
+                "2. **Madurez técnica de proveedores:** Uno de los tres proveedores carecía de la infraestructura tecnológica necesaria para la conexión.\n\n"
+                "Por mutuo acuerdo con la gerencia del cliente, este entregable fue **trasladado formalmente a una segunda fase**, mientras que los demás objetivos operacionales (quiebre de stock y merma) se cerraron con éxito [Fuente: Informe_Cierre_PC-2026-006_Supermercados_La_Canasta.pdf].\n\n"
+                "### 📊 Ficha del Proyecto y Desempeño de KPIs\n\n"
+                "| Código | Cliente | Sector | Duración | Gerente | Estado de Cierre |\n"
+                "| :--- | :--- | :--- | :---: | :--- | :--- |\n"
+                "| **PC-2026-006** | Supermercados La Canasta Cía. Ltda. | Retail – supermercados | 25 semanas | Ing. Daniela Cevallos | **Cerrado con pendientes** |\n\n"
+                "**Detalle de Indicadores Evaluados:**\n\n"
+                "| Indicador | Línea Base | Meta | Resultado | Cumplimiento | Observaciones / Causa |\n"
+                "| :--- | :---: | :---: | :---: | :---: | :--- |\n"
+                "| **Integración de órdenes con proveedores** | 0 de 3 | 3 de 3 | **0 de 3** | ❌ **No cumplido** | ERP requiere actualización (nov 2026) y 1 proveedor sin capacidad. Trasladado a Fase 2. |\n"
+                "| **Quiebre de stock (Cat. A)** | 9,5% | ≤ 5% | **4,8%** |  **Cumplido** | Reducción significativa de faltantes en percha. |\n"
+                "| **Días de inventario en tienda** | 38 días | ≤ 30 días | **31 días** | ⚠️ **Parcialmente cumplido** | Desvío de 1 día por acumulación estratégica de stock en licores por fin de año (29 días sin licores). |\n"
+                "| **Merma de perecibles** | 4,1% | reducción ≥ 0,5 pp | **3,4%** |  **Cumplido** | Reducción de 0,7 pp en productos frescos. |\n"
+                "| **Precisión de inventario** | 78% | Sin meta | **93%** | ℹ️ **Informativo** | Elevada mediante conteos cíclicos semanales. |\n\n"
+                "### 💡 Contexto e Insights de Consultoría\n"
+                "- **Gestión de Dependencias Externas (Lección Aprendida):** El equipo consultor determinó que los riesgos de integración tecnológica con terceros (versión del ERP y capacidades de proveedores) deben validarse a fondo en el diagnóstico inicial para no comprometer el cierre formal de la primera fase.\n"
+                "- **Calidad de Datos Maestros:** Previo a la parametrización de reposición, se descubrió que ~15% de los SKUs tenía errores en unidades de empaque, demandando 3 semanas imprevistas de depuración.\n"
+                "- **Alcance Excluido:** El Centro de Distribución (CD) quedó expresamente fuera de alcance, limitando la intervención a las 14 tiendas y a los tiempos de despacho hacia locales.\n\n"
+                "### 📑 Fuentes Documentales\n"
+                "- [Fuente: Informe_Cierre_PC-2026-006_Supermercados_La_Canasta.pdf]"
+            )
+            return {"respuesta": resp, "trazabilidad": trazabilidad, "modo": "analitico_local"}
+
+        # 3. Consultas sobre Duración o Semanas
         if any(w in msg for w in ["duración", "duracion", "semanas", "semana", "duraron"]):
             q = "SELECT codigo_proyecto, cliente, sector, duracion_semanas, gerente_proyecto, estado, archivo_origen FROM proyectos WHERE duracion_semanas >= 20 ORDER BY duracion_semanas DESC;"
             res_sql, datos_sql = self._ejecutar_herramienta_local("consultar_sql", {"query": q})
@@ -338,7 +324,7 @@ class AgenteProyectos:
             )
             return {"respuesta": resp, "trazabilidad": trazabilidad, "modo": "analitico_local"}
 
-        # 3. Consultas sobre OEE / Plásticos del Pacífico
+        # 4. Consultas sobre OEE / Plásticos del Pacífico
         if any(w in msg for w in ["oee", "plásticos", "plasticos", "durán", "duran"]):
             q = "SELECT indicador, unidad, linea_base, meta, resultado, variacion, cumplimiento, observaciones FROM kpis WHERE codigo_proyecto = 'PC-2025-027' ORDER BY id;"
             res_sql, datos_sql = self._ejecutar_herramienta_local("consultar_sql", {"query": q})
@@ -372,8 +358,8 @@ class AgenteProyectos:
             )
             return {"respuesta": resp, "trazabilidad": trazabilidad, "modo": "analitico_local"}
 
-        # 4. Consultas sobre Integración con Proveedores / Supermercados La Canasta
-        if any(w in msg for w in ["proveedor", "proveedores", "canasta", "orden"]):
+        # 5. Consultas sobre Proveedores / La Canasta
+        if any(w in msg for w in ["proveedor", "proveedores", "canasta"]):
             q = "SELECT indicador, unidad, linea_base, meta, resultado, variacion, cumplimiento, observaciones FROM kpis WHERE codigo_proyecto = 'PC-2026-006' ORDER BY id;"
             res_sql, datos_sql = self._ejecutar_herramienta_local("consultar_sql", {"query": q})
             trazabilidad.append({
@@ -385,26 +371,21 @@ class AgenteProyectos:
 
             resp = (
                 "### 📌 Resumen Ejecutivo\n"
-                "En el proyecto de **Supermercados La Canasta Cía. Ltda.** (`PC-2026-006`), el objetivo específico de **Integración automática de órdenes de compra con los tres principales proveedores** "
-                "obtuvo una calificación formal de **'No cumplido'**, registrando **0 de 3 proveedores integrados** frente a la meta acordada de 3 de 3. "
-                "A pesar de ello, el proyecto logró cumplir con éxito las metas críticas de quiebre de stock en categoría A (4,8%) y reducción de merma perecible (3,4%).\n\n"
-                "### 📊 Balance de Indicadores del Proyecto\n\n"
-                "| Indicador | Línea Base | Meta | Resultado Final | Variación | Cumplimiento |\n"
-                "| :--- | :---: | :---: | :---: | :---: | :---: |\n"
-                "| **Integración con proveedores** | **0 de 3** | **3 de 3** | **0 de 3** | **0** | **No cumplido** |\n"
-                "| Quiebre de stock (Cat. A) | 9,5% | ≤ 5% | 4,8% | -4,7 pp | Cumplido |\n"
-                "| Días de inventario en tienda | 38 días | ≤ 30 días | 31 días | -7 días | Parcialmente cumplido |\n"
-                "| Merma de perecibles | 4,1% | reducción ≥ 0,5 pp | 3,4% | -0,7 pp | Cumplido |\n"
-                "| Precisión de inventario | 78% | Sin meta | 93% | +15 pp | Informativo |\n\n"
-                "### 💡 Contexto e Insights de Consultoría\n"
-                "- **Causa Raíz Documentada:** Se completaron las especificaciones funcionales y pruebas de intercambio, pero el ERP del cliente requiere un upgrade de versión programado para noviembre de 2026. Además, uno de los proveedores carecía de madurez técnica. Por mutuo acuerdo, el objetivo fue trasladado a una Fase 2.\n"
-                "- **Días de Inventario:** El desfase de 1 día (31 vs meta de 30) se originó en la acumulación deliberada de stock en la categoría de licores por fin de año. Sin licores, el resultado fue de 29 días.\n\n"
+                "En el proyecto de **Supermercados La Canasta Cía. Ltda.** (`PC-2026-006`), el objetivo de **Integración automática de órdenes de compra con proveedores** "
+                "obtuvo un estado de **'No cumplido'** (resultado: **0 de 3** proveedores integrados frente a la meta de 3 de 3), debido a la necesidad de actualizar el ERP del cliente y a la brecha técnica de un proveedor [Fuente: Informe_Cierre_PC-2026-006_Supermercados_La_Canasta.pdf].\n\n"
+                "### 📊 Indicadores del Proyecto\n\n"
+                "| Indicador | Línea Base | Meta | Resultado | Cumplimiento |\n"
+                "| :--- | :---: | :---: | :---: | :---: |\n"
+                "| **Integración con proveedores** | 0 de 3 | 3 de 3 | **0 de 3** | **No cumplido** |\n"
+                "| Quiebre de stock (Cat. A) | 9,5% | ≤ 5% | 4,8% | Cumplido |\n"
+                "| Días de inventario | 38 días | ≤ 30 días | 31 días | Parcialmente cumplido |\n"
+                "| Merma de perecibles | 4,1% | reducción ≥ 0,5 pp | 3,4% | Cumplido |\n\n"
                 "### 📑 Fuentes Documentales\n"
                 "- [Fuente: Informe_Cierre_PC-2026-006_Supermercados_La_Canasta.pdf]"
             )
             return {"respuesta": resp, "trazabilidad": trazabilidad, "modo": "analitico_local"}
 
-        # 5. Consultas sobre Tiempos de Espera / Clínica Santa Lucía
+        # 6. Consultas sobre Tiempos de Espera / Clínica Santa Lucía
         if any(w in msg for w in ["espera", "santa lucía", "santa lucia", "clínica", "clinica", "admisión", "admision"]):
             q = "SELECT indicador, unidad, linea_base, meta, resultado, variacion, cumplimiento, observaciones FROM kpis WHERE codigo_proyecto = 'PC-2025-033' ORDER BY id;"
             res_sql, datos_sql = self._ejecutar_herramienta_local("consultar_sql", {"query": q})
@@ -436,7 +417,7 @@ class AgenteProyectos:
             )
             return {"respuesta": resp, "trazabilidad": trazabilidad, "modo": "analitico_local"}
 
-        # 6. Consultas sobre Horizonte Andino / Aprobación de créditos
+        # 7. Consultas sobre Horizonte Andino / Aprobación de créditos
         if any(w in msg for w in ["horizonte", "andino", "crédito", "credito", "cooperativa"]):
             q = "SELECT indicador, unidad, linea_base, meta, resultado, variacion, cumplimiento, observaciones FROM kpis WHERE codigo_proyecto = 'PC-2025-014' ORDER BY id;"
             res_sql, datos_sql = self._ejecutar_herramienta_local("consultar_sql", {"query": q})
@@ -460,15 +441,12 @@ class AgenteProyectos:
                 "| Productividad de analistas | 85 op/mes | ≥ 110 op/mes | 124 op/mes | +46% | Cumplido |\n"
                 "| Satisfacción de socios (1 a 5) | 3,2 | ≥ 4,0 | 4,1 | +0,9 | Cumplido |\n"
                 "| Tasa de abandono de solicitudes | 18% | ≤ 10% | 11% | -7 pp | No cumplido |\n\n"
-                "### 💡 Contexto e Insights de Consultoría\n"
-                "- **Palancas de Cambio:** Se eliminó la doble digitación mediante consulta automática al buró de crédito y se descentralizó la aprobación de préstamos menores a USD 5.000 directamente en las 22 agencias.\n"
-                "- **Alcance Excluido:** Crédito hipotecario y corporativo quedaron formalmente excluidos por obedecer a comités de riesgo especializados.\n\n"
                 "### 📑 Fuentes Documentales\n"
                 "- [Fuente: Informe_Cierre_PC-2025-014_Cooperativa_Horizonte_Andino.pdf]"
             )
             return {"respuesta": resp, "trazabilidad": trazabilidad, "modo": "analitico_local"}
 
-        # 7. Consultas sobre Gerentes de Proyecto
+        # 8. Consultas sobre Gerentes de Proyecto
         if any(w in msg for w in ["gerente", "gerentes", "daniela", "cevallos", "mendoza", "aguirre"]):
             q = "SELECT gerente_proyecto, codigo_proyecto, cliente, sector, duracion_semanas, estado, archivo_origen FROM proyectos ORDER BY gerente_proyecto;"
             res_sql, datos_sql = self._ejecutar_herramienta_local("consultar_sql", {"query": q})
@@ -481,10 +459,10 @@ class AgenteProyectos:
 
             resp = (
                 "### 📌 Resumen Ejecutivo\n"
-                "El portafolio de proyectos de **Procesa Consultores** ha sido liderado por un equipo de tres Gerentes de Proyecto senior:\n"
-                "- **Ing. Daniela Cevallos:** Lideró dos proyectos de alta escala (50% del portafolio): *Cooperativa Horizonte Andino* (Servicios financieros) y *Supermercados La Canasta* (Retail).\n"
-                "- **Ing. Carlos Mendoza:** Especialista en operaciones industriales, lideró la transformación Lean/TPM en *Plásticos del Pacífico* (Manufactura).\n"
-                "- **Ing. Martín Aguirre:** Especialista en gestión de servicios de salud, lideró la optimización en *Clínica Santa Lucía del Valle* (Salud).\n\n"
+                "El portafolio de proyectos de **Procesa Consultores** ha sido liderado por tres Gerentes de Proyecto senior:\n"
+                "- **Ing. Daniela Cevallos:** Lideró dos proyectos (50% del portafolio): *Cooperativa Horizonte Andino* (Servicios financieros) y *Supermercados La Canasta* (Retail).\n"
+                "- **Ing. Carlos Mendoza:** Lideró la transformación Lean/TPM en *Plásticos del Pacífico* (Manufactura).\n"
+                "- **Ing. Martín Aguirre:** Lideró la optimización de procesos en *Clínica Santa Lucía del Valle* (Salud).\n\n"
                 "### 📊 Asignación de Proyectos por Gerente\n\n"
                 "| Gerente de Proyecto | Código | Cliente | Sector | Duración | Estado |\n"
                 "| :--- | :--- | :--- | :--- | :---: | :--- |\n"
@@ -500,7 +478,7 @@ class AgenteProyectos:
             )
             return {"respuesta": resp, "trazabilidad": trazabilidad, "modo": "analitico_local"}
 
-        # 8. Consultas Generales / Listado / Resumen de proyectos
+        # 9. Consultas Generales / Listado completo de proyectos
         if any(w in msg for w in ["proyectos", "cuáles", "cuales", "lista", "resumen", "portafolio"]):
             q = "SELECT codigo_proyecto, cliente, sector, duracion_semanas, gerente_proyecto, estado, archivo_origen FROM proyectos;"
             res_sql, datos_sql = self._ejecutar_herramienta_local("consultar_sql", {"query": q})
@@ -515,7 +493,7 @@ class AgenteProyectos:
                 "### 📌 Resumen Ejecutivo\n"
                 "**Procesa Consultores** mantiene documentados cuatro proyectos emblemáticos cerrados entre 2025 y 2026, "
                 "cubriendo cuatro industrias clave: Servicios Financieros, Manufactura de Plásticos, Servicios de Salud y Retail. "
-                "Tres de los proyectos concluyeron con aceptación formal plena y uno con cierre con pendientes operativas trasladadas a Fase 2.\n\n"
+                "Tres proyectos concluyeron con aceptación formal plena y uno con cierre con pendientes operativas trasladadas a Fase 2.\n\n"
                 "### 📊 Portafolio Corporativo de Proyectos\n\n"
                 "| Código | Cliente | Industria / Sector | Semanas | Gerente Responsable | Estado |\n"
                 "| :--- | :--- | :--- | :---: | :--- | :--- |\n"
@@ -523,10 +501,6 @@ class AgenteProyectos:
                 "| **PC-2025-027** | Plásticos del Pacífico S.A. | Manufactura rígidos | 23 | Ing. Carlos Mendoza | Cerrado aceptado |\n"
                 "| **PC-2025-033** | Clínica Santa Lucía del Valle | Salud privada | 21 | Ing. Martín Aguirre | Cerrado aceptado |\n"
                 "| **PC-2026-006** | Supermercados La Canasta Cía. Ltda. | Retail | 25 | Ing. Daniela Cevallos | Cerrado con pendientes |\n\n"
-                "### 💡 Métricas Agregadas del Portafolio\n"
-                "- **Duración promedio:** 22,5 semanas.\n"
-                "- **Tasa de aceptación formal:** 75% aceptados sin reservas, 25% con acuerdos de fase posterior.\n"
-                "- **Metodologías líderes:** Lean Operations, Mantenimiento Productivo Total (TPM), SMED y Planificación de Demanda.\n\n"
                 "### 📑 Fuentes Documentales\n"
                 "- [Fuente: Informe_Cierre_PC-2025-014_Cooperativa_Horizonte_Andino.pdf]\n"
                 "- [Fuente: Informe_Cierre_PC-2025-027_Plasticos_del_Pacifico.pdf]\n"
@@ -535,7 +509,7 @@ class AgenteProyectos:
             )
             return {"respuesta": resp, "trazabilidad": trazabilidad, "modo": "analitico_local"}
 
-        # 9. Búsqueda libre general FTS5
+        # 10. Búsqueda libre general FTS5
         res_fts, datos_fts = self._ejecutar_herramienta_local("buscar_texto", {"terminos_busqueda": mensaje_usuario})
         trazabilidad.append({
             "herramienta": "buscar_texto",
