@@ -47,11 +47,11 @@ def imprimir_bienvenida(config_mgr: ConfigManager, resumen: dict):
 
 def mostrar_ayuda():
     print("\n💡 Ejemplos de consultas que puedes realizar:")
-    print("  1. ¿Cuáles fueron los resultados de OEE en Plásticos del Pacífico?")
-    print("  2. ¿Se logró la integración con proveedores en Supermercados La Canasta?")
-    print("  3. ¿Cuánto se redujo el tiempo de espera en la Clínica Santa Lucía?")
+    print("  1. ¿Cuáles fueron los resultados principales de KPIs?")
+    print("  2. ¿Qué proyectos se cerraron con pendientes y por qué?")
+    print("  3. ¿Cuánto se redujo el tiempo de espera en los proyectos de salud?")
     print("  4. ¿Qué lecciones aprendidas se registraron sobre gestión del cambio?")
-    print("  5. ¿Qué proyectos lideró la Ing. Daniela Cevallos?")
+    print("  5. ¿Qué proyectos lideró cada gerente?")
     print("  6. ¿Qué proyectos se realizaron para Banco Pichincha? (Prueba anti-alucinación)\n")
 
 

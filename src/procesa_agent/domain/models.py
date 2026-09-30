@@ -32,7 +32,7 @@ class Iniciativa(BaseModel):
 
 
 class FichaProyecto(BaseModel):
-    codigo_proyecto: str = Field(description="Código único del proyecto (ej. PC-2025-027)")
+    codigo_proyecto: str = Field(description="Código único identificador del proyecto")
     archivo_origen: str = Field(description="Nombre del archivo original de informe")
     cliente: str = Field(description="Nombre oficial de la empresa cliente")
     cliente_descripcion: Optional[str] = Field(
