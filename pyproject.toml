@@ -1,0 +1,61 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "procesa-agent"
+version = "0.2.0"
+description = "Agente de Inteligencia de Proyectos y Optimización Operativa - Procesa Consultores"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+    { name = "Procesa Consultores" }
+]
+dependencies = [
+    "google-genai>=1.0.0,<3.0.0",
+    "pydantic>=2.7.0,<3.0.0",
+    "pydantic-settings>=2.2.0,<3.0.0",
+    "python-dotenv>=1.0.0,<2.0.0",
+    "pypdf>=4.0.0,<7.0.0",
+    "python-docx>=1.1.0,<2.0.0",
+    "streamlit>=1.35.0,<2.0.0",
+    "pandas>=2.0.0,<4.0.0",
+    "mcp>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=5.0.0",
+    "ruff>=0.4.0",
+    "mypy>=1.10.0",
+]
+
+[project.scripts]
+procesa-cli = "procesa_agent.interfaces.cli.main:main"
+procesa-mcp = "procesa_agent.interfaces.mcp.server:main"
+procesa-ingest = "scripts.ingest:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "."]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.11"
+mypy_path = "src"
+explicit_package_bases = true
+warn_return_any = false
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true

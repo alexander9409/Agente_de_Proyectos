@@ -9,7 +9,6 @@ import os
 import sys
 from pathlib import Path
 
-import pytest
 from mcp.client.session import ClientSession
 from mcp.client.stdio import StdioServerParameters, stdio_client
 
@@ -18,6 +17,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 def test_mcp_server_tools_registration():
     """Valida que el servidor MCP inicie y exponga las herramientas 'consultar_sql' y 'buscar_texto'."""
+
     async def _test():
         script_mcp = str(BASE_DIR / "src" / "mcp_server.py")
         params = StdioServerParameters(
@@ -32,14 +32,19 @@ def test_mcp_server_tools_registration():
                 tools_resp = await session.list_tools()
                 nombres = [t.name for t in tools_resp.tools]
 
-                assert "consultar_sql" in nombres, "La herramienta 'consultar_sql' debe estar registrada en el MCP"
-                assert "buscar_texto" in nombres, "La herramienta 'buscar_texto' debe estar registrada en el MCP"
+                assert "consultar_sql" in nombres, (
+                    "La herramienta 'consultar_sql' debe estar registrada en el MCP"
+                )
+                assert "buscar_texto" in nombres, (
+                    "La herramienta 'buscar_texto' debe estar registrada en el MCP"
+                )
 
     asyncio.run(_test())
 
 
 def test_mcp_server_tool_execution():
     """Valida la ejecución de una consulta SQL mediante el protocolo MCP."""
+
     async def _test():
         script_mcp = str(BASE_DIR / "src" / "mcp_server.py")
         params = StdioServerParameters(
@@ -53,7 +58,9 @@ def test_mcp_server_tool_execution():
                 await session.initialize()
 
                 # Probar consultar_sql
-                res_sql = await session.call_tool("consultar_sql", {"query": "SELECT COUNT(*) as total FROM proyectos;"})
+                res_sql = await session.call_tool(
+                    "consultar_sql", {"query": "SELECT COUNT(*) as total FROM proyectos;"}
+                )
                 assert res_sql.content, "La respuesta de consultar_sql no debe ser vacía"
                 texto_sql = res_sql.content[0].text
                 assert "4" in texto_sql, "Debe retornar los 4 proyectos registrados"

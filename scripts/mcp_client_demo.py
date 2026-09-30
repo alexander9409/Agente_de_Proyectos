@@ -10,8 +10,6 @@ Demuestra la conexión cliente-servidor a través del protocolo estándar MCP (M
 import asyncio
 import os
 import sys
-from pathlib import Path
-from typing import Any, Dict
 
 # Soporte de codificación UTF-8 para consola Windows
 if hasattr(sys.stdout, "reconfigure"):
@@ -19,23 +17,22 @@ if hasattr(sys.stdout, "reconfigure"):
 if hasattr(sys.stderr, "reconfigure"):
     sys.stderr.reconfigure(encoding="utf-8")
 
-# Asegurar path para imports
-BASE_DIR = Path(__file__).resolve().parent
-if str(BASE_DIR) not in sys.path:
-    sys.path.insert(0, str(BASE_DIR))
-
 from mcp.client.session import ClientSession
 from mcp.client.stdio import StdioServerParameters, stdio_client
-from src.config_manager import ConfigManager
+
+from procesa_agent.core.config_manager import ConfigManager
+from procesa_agent.core.paths import PROJECT_ROOT
 
 
-async def ejecutar_cliente_mcp(pregunta: str = "¿Cuáles son los 4 proyectos cerrados, sus clientes y sus sectores?"):
+async def ejecutar_cliente_mcp(
+    pregunta: str = "¿Cuáles son los 4 proyectos cerrados, sus clientes y sus sectores?",
+):
     print("=" * 70)
     print("🤖 INICIANDO CLIENTE MCP CONECTADO A 'AgenteConsultorIA'")
     print("=" * 70)
 
     # 1. Configurar conexión con el servidor MCP local vía stdio
-    script_servidor = str(BASE_DIR / "src" / "mcp_server.py")
+    script_servidor = str(PROJECT_ROOT / "src" / "mcp_server.py")
     server_params = StdioServerParameters(
         command=sys.executable,
         args=[script_servidor],
@@ -54,7 +51,9 @@ async def ejecutar_cliente_mcp(pregunta: str = "¿Cuáles son los 4 proyectos ce
             nombres_tools = [t.name for t in herramientas_mcp.tools]
             print(f"      Herramientas detectadas ({len(nombres_tools)}): {nombres_tools}")
             for t in herramientas_mcp.tools:
-                print(f"      • `{t.name}`: {t.description.strip().splitlines()[0] if t.description else ''}")
+                print(
+                    f"      • `{t.name}`: {t.description.strip().splitlines()[0] if t.description else ''}"
+                )
 
             # 3. Verificar clave de API de Gemini
             config_mgr = ConfigManager()
@@ -62,14 +61,21 @@ async def ejecutar_cliente_mcp(pregunta: str = "¿Cuáles son los 4 proyectos ce
 
             if not api_key:
                 print("\n[3/4] ⚠️ No se detectó GEMINI_API_KEY configurada.")
-                print("      Ejecutando prueba directa sobre el protocolo MCP (sin modelo externo)...")
+                print(
+                    "      Ejecutando prueba directa sobre el protocolo MCP (sin modelo externo)..."
+                )
 
-                print(f"\n      Invocando 'consultar_sql' vía MCP con: SELECT codigo_proyecto, cliente, sector FROM proyectos;")
-                res_sql = await session.call_tool("consultar_sql", {"query": "SELECT codigo_proyecto, cliente, sector FROM proyectos;"})
+                print(
+                    "\n      Invocando 'consultar_sql' vía MCP con: SELECT codigo_proyecto, cliente, sector FROM proyectos;"
+                )
+                res_sql = await session.call_tool(
+                    "consultar_sql",
+                    {"query": "SELECT codigo_proyecto, cliente, sector FROM proyectos;"},
+                )
                 print("\n[4/4] 📥 Respuesta recibida del servidor MCP:")
                 print(res_sql.content[0].text if res_sql.content else "Sin contenido")
 
-                print(f"\n      Invocando 'buscar_texto' vía MCP con: OEE SMED")
+                print("\n      Invocando 'buscar_texto' vía MCP con: OEE SMED")
                 res_fts = await session.call_tool("buscar_texto", {"terminos_busqueda": "OEE SMED"})
                 print("\n[4/4] 📥 Respuesta de texto FTS recibida del servidor MCP:")
                 print(res_fts.content[0].text if res_fts.content else "Sin contenido")
@@ -77,7 +83,7 @@ async def ejecutar_cliente_mcp(pregunta: str = "¿Cuáles son los 4 proyectos ce
                 return
 
             # 4. Integrar dinámicamente con Google Gemini
-            print(f"\n[3/4] 🧠 Vinculando herramientas MCP con el SDK de Google Gemini...")
+            print("\n[3/4] 🧠 Vinculando herramientas MCP con el SDK de Google Gemini...")
             from google import genai
             from google.genai import types
 
@@ -87,32 +93,39 @@ async def ejecutar_cliente_mcp(pregunta: str = "¿Cuáles son los 4 proyectos ce
             # Envolturas locales que redirigen la llamada hacia la sesión MCP activa
             def consultar_sql(query: str) -> str:
                 """Ejecuta consultas de solo lectura (SELECT) en la base de datos SQLite con las fichas de proyectos."""
-                print(f"\n      ⚡ [MCP Tool Call] Gemini está invocando consultar_sql(query='{query}') a través del MCP...")
+                print(
+                    f"\n      ⚡ [MCP Tool Call] Gemini está invocando consultar_sql(query='{query}') a través del MCP..."
+                )
                 # Correr la corrutina asíncrona dentro de un loop o tarea
                 loop = asyncio.get_event_loop()
                 fut = asyncio.run_coroutine_threadsafe(
-                    session.call_tool("consultar_sql", {"query": query}),
-                    loop
+                    session.call_tool("consultar_sql", {"query": query}), loop
                 )
                 res = fut.result(timeout=10)
                 contenido = res.content[0].text if res.content else ""
-                print(f"      📥 [MCP Tool Result] Retornando {len(contenido)} caracteres a Gemini.")
+                print(
+                    f"      📥 [MCP Tool Result] Retornando {len(contenido)} caracteres a Gemini."
+                )
                 return contenido
 
             def buscar_texto(terminos_busqueda: str) -> str:
                 """Realiza búsquedas de texto completo (FTS5) en el contenido de los informes."""
-                print(f"\n      ⚡ [MCP Tool Call] Gemini está invocando buscar_texto(terminos_busqueda='{terminos_busqueda}') a través del MCP...")
+                print(
+                    f"\n      ⚡ [MCP Tool Call] Gemini está invocando buscar_texto(terminos_busqueda='{terminos_busqueda}') a través del MCP..."
+                )
                 loop = asyncio.get_event_loop()
                 fut = asyncio.run_coroutine_threadsafe(
                     session.call_tool("buscar_texto", {"terminos_busqueda": terminos_busqueda}),
-                    loop
+                    loop,
                 )
                 res = fut.result(timeout=10)
                 contenido = res.content[0].text if res.content else ""
-                print(f"      📥 [MCP Tool Result] Retornando {len(contenido)} caracteres a Gemini.")
+                print(
+                    f"      📥 [MCP Tool Result] Retornando {len(contenido)} caracteres a Gemini."
+                )
                 return contenido
 
-            print(f"      Pregunta del usuario: \"{pregunta}\"")
+            print(f'      Pregunta del usuario: "{pregunta}"')
             print(f"      Consultando modelo {modelo}...")
 
             # Ejecutar con Gemini pasándole las herramientas
@@ -123,6 +136,7 @@ async def ejecutar_cliente_mcp(pregunta: str = "¿Cuáles son los 4 proyectos ce
             )
 
             import concurrent.futures
+
             loop = asyncio.get_running_loop()
 
             def _llamar_gemini(m: str):
@@ -152,20 +166,39 @@ async def ejecutar_cliente_mcp(pregunta: str = "¿Cuáles son los 4 proyectos ce
                 print("[4/4] 🎯 RESPUESTA FINAL DE GEMINI (CON DATOS OBTENIDOS VÍA MCP):")
                 print("=" * 70)
                 print(respuesta.text)
-                print("\n✅ Interacción completada exitosamente a través de Model Context Protocol (MCP).")
+                print(
+                    "\n✅ Interacción completada exitosamente a través de Model Context Protocol (MCP)."
+                )
             else:
-                print("\n[4/4] ⚠️ La API de Gemini no pudo completar la solicitud debido a límites de cuota (429).")
-                print("      Demostrando ejecución directa y verificación de herramientas a través del servidor MCP:")
-                print(f"\n      Invocando 'consultar_sql' vía MCP con: SELECT codigo_proyecto, cliente, sector, estado FROM proyectos;")
-                res_sql = await session.call_tool("consultar_sql", {"query": "SELECT codigo_proyecto, cliente, sector, estado FROM proyectos;"})
+                print(
+                    "\n[4/4] ⚠️ La API de Gemini no pudo completar la solicitud debido a límites de cuota (429)."
+                )
+                print(
+                    "      Demostrando ejecución directa y verificación de herramientas a través del servidor MCP:"
+                )
+                print(
+                    "\n      Invocando 'consultar_sql' vía MCP con: SELECT codigo_proyecto, cliente, sector, estado FROM proyectos;"
+                )
+                res_sql = await session.call_tool(
+                    "consultar_sql",
+                    {"query": "SELECT codigo_proyecto, cliente, sector, estado FROM proyectos;"},
+                )
                 print(res_sql.content[0].text if res_sql.content else "Sin contenido")
 
-                print(f"\n      Invocando 'buscar_texto' vía MCP con: emergencias quirófanos")
-                res_fts = await session.call_tool("buscar_texto", {"terminos_busqueda": "emergencias quirófanos"})
+                print("\n      Invocando 'buscar_texto' vía MCP con: emergencias quirófanos")
+                res_fts = await session.call_tool(
+                    "buscar_texto", {"terminos_busqueda": "emergencias quirófanos"}
+                )
                 print(res_fts.content[0].text if res_fts.content else "Sin contenido")
-                print("\n✅ El Servidor MCP ('AgenteConsultorIA') está 100% operativo y respondiendo vía protocolo MCP.")
+                print(
+                    "\n✅ El Servidor MCP ('AgenteConsultorIA') está 100% operativo y respondiendo vía protocolo MCP."
+                )
 
 
 if __name__ == "__main__":
-    pregunta_arg = sys.argv[1] if len(sys.argv) > 1 else "¿Cuáles son los 4 proyectos cerrados, sus clientes y sus sectores?"
+    pregunta_arg = (
+        sys.argv[1]
+        if len(sys.argv) > 1
+        else "¿Cuáles son los 4 proyectos cerrados, sus clientes y sus sectores?"
+    )
     asyncio.run(ejecutar_cliente_mcp(pregunta_arg))

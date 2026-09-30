@@ -5,33 +5,28 @@ Diseñada para consultores y directores de negocio con visualización ejecutiva,
 eliminación total de textos truncados y tablas interactivas en Pandas/Streamlit.
 """
 
-import io
 import json
 import os
 import re
 import sys
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import pandas as pd
 import streamlit as st
 
-# Configurar path base para importar módulos de src
-BASE_DIR = Path(__file__).resolve().parent
-if str(BASE_DIR) not in sys.path:
-    sys.path.insert(0, str(BASE_DIR))
-
-from src.agent import AgenteProyectos
-from src.config_manager import ConfigManager
-from src.db import (
-    get_default_db_path,
+from procesa_agent.agent.orchestrator import AgenteProyectos
+from procesa_agent.core.config_manager import ConfigManager
+from procesa_agent.infrastructure.db.connection import (
     inicializar_bd,
     obtener_resumen_bd,
     obtener_todas_lecciones,
     obtener_todos_kpis,
     obtener_todos_proyectos,
 )
-from src.extractor import ejecutar_ingesta_completa
+from procesa_agent.ingestion.extractor import ejecutar_ingesta_completa
+
+BASE_DIR = Path(__file__).resolve().parent
 
 # ==========================================
 # CONFIGURACIÓN GENERAL Y ESTILOS CSS
@@ -44,7 +39,8 @@ st.set_page_config(
 )
 
 # Estilos CSS personalizados para forzar interfaz blanca moderna estilo SaaS corporativo
-st.markdown("""
+st.markdown(
+    """
 <style>
     /* 1. Forzar tema blanco en todo el contenedor principal y sidebar */
     html, body, [data-testid="stAppViewContainer"], .stApp {
@@ -281,29 +277,33 @@ st.markdown("""
         background-color: #F8FAFC !important;
     }
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 
 def resaltar_fuentes(texto: str) -> str:
     """Resalta visualmente las citas de fuentes documentales con un badge estilizado."""
-    patron = r'(\[Fuente:\s*([^\]]+)\])'
+    patron = r"(\[Fuente:\s*([^\]]+)\])"
     reemplazo = r'<span class="badge-fuente">📄 \1</span>'
     return re.sub(patron, reemplazo, texto)
 
 
 def tabla_markdown_a_dataframe(texto_md: str) -> Optional[pd.DataFrame]:
     """Convierte una tabla en formato Markdown en un DataFrame de Pandas limpio."""
-    lineas = [l.strip() for l in texto_md.strip().split("\n") if l.strip().startswith("|")]
+    lineas = [
+        linea.strip() for linea in texto_md.strip().split("\n") if linea.strip().startswith("|")
+    ]
     if len(lineas) < 3:
         return None
     try:
         # Tomar encabezados
         encabezados = [c.strip() for c in lineas[0].strip("|").split("|")]
         filas = []
-        for l in lineas[2:]:  # Omitir separador |---|---|
-            if not l.startswith("|"):
+        for linea in lineas[2:]:  # Omitir separador |---|---|
+            if not linea.startswith("|"):
                 continue
-            valores = [c.strip() for c in l.strip("|").split("|")]
+            valores = [c.strip() for c in linea.strip("|").split("|")]
             if len(valores) == len(encabezados):
                 filas.append(valores)
         if filas:
@@ -353,7 +353,9 @@ def renderizar_trazabilidad(trazabilidad: List[Dict[str, Any]]) -> None:
                 st.caption(f"Términos enviados al índice virtual FTS5: **`{terminos}`**")
 
                 if datos_estructurados and isinstance(datos_estructurados, list):
-                    st.caption(f"🔍 **Fragmentos localizados:** {len(datos_estructurados)} coincidencia(s)")
+                    st.caption(
+                        f"🔍 **Fragmentos localizados:** {len(datos_estructurados)} coincidencia(s)"
+                    )
                     for c in datos_estructurados:
                         st.markdown(
                             f"**Coincidencia #{c.get('coincidencia', '')}** · "
@@ -405,7 +407,8 @@ def main():
         col_m4.metric("Docs FTS", resumen["fts"])
 
         # Píldoras de gobernanza y estado del pipeline (movidos a la izquierda para despejar el chat)
-        st.markdown("""
+        st.markdown(
+            """
         <div style="margin-top: 8px; margin-bottom: 6px;">
             <span class="deal-pill">Auditoría Operativa</span>
             <span class="deal-pill">Lean & TPM</span>
@@ -415,12 +418,16 @@ def main():
         <div style="font-size: 0.76rem; color: #64748B; background: #F8FAFC; padding: 6px 10px; border-radius: 6px; border: 1px solid #E2E8F0; margin-bottom: 4px;">
             <b>Pipeline:</b> Ingesta (4) ➔ SQLite & FTS5 ➔ Agente IA
         </div>
-        """, unsafe_allow_html=True)
+        """,
+            unsafe_allow_html=True,
+        )
         st.markdown("---")
         st.subheader("⚙️ Configuración Gemini")
 
         key_actual = config_mgr.gemini_api_key or ""
-        placeholder_key = "•••••••• (Guardada en sistema)" if key_actual else "Pega tu GEMINI_API_KEY..."
+        placeholder_key = (
+            "•••••••• (Guardada en sistema)" if key_actual else "Pega tu GEMINI_API_KEY..."
+        )
         input_api_key = st.text_input(
             "GEMINI_API_KEY",
             value="",
@@ -429,17 +436,28 @@ def main():
             help="Clave API de Google AI Studio / Gemini. Se prioriza la almacenada en SQLite.",
         )
 
-        modelos_disponibles = ["gemini-3.8-flash", "gemini-3.5-flash", "gemini-2.5-flash", "gemini-1.5-pro"]
+        modelos_disponibles = [
+            "gemini-3.8-flash",
+            "gemini-3.5-flash",
+            "gemini-2.5-flash",
+            "gemini-1.5-pro",
+        ]
         modelo_actual = config_mgr.model_name
-        idx_modelo = modelos_disponibles.index(modelo_actual) if modelo_actual in modelos_disponibles else 0
+        idx_modelo = (
+            modelos_disponibles.index(modelo_actual) if modelo_actual in modelos_disponibles else 0
+        )
         select_model = st.selectbox("Modelo", modelos_disponibles, index=idx_modelo)
 
         temp_actual = config_mgr.temperature
-        slider_temp = st.slider("Temperatura", min_value=0.0, max_value=1.0, value=float(temp_actual), step=0.05)
+        slider_temp = st.slider(
+            "Temperatura", min_value=0.0, max_value=1.0, value=float(temp_actual), step=0.05
+        )
 
         if st.button("💾 Guardar Configuración", type="primary", use_container_width=True):
             if input_api_key.strip():
-                config_mgr.set_config("gemini_api_key", input_api_key.strip(), "Clave API de Gemini")
+                config_mgr.set_config(
+                    "gemini_api_key", input_api_key.strip(), "Clave API de Gemini"
+                )
             config_mgr.set_config("model_name", select_model, "Modelo seleccionado")
             config_mgr.set_config("temperature", str(slider_temp), "Temperatura del modelo")
 
@@ -453,7 +471,7 @@ def main():
         forzar_gemini = st.checkbox(
             "Forzar extracción con Gemini",
             value=False,
-            help="Re-extrae directamente mediante llamada a Gemini (requiere API Key)."
+            help="Re-extrae directamente mediante llamada a Gemini (requiere API Key).",
         )
         if st.button("🔄 Ejecutar Ingesta / Re-procesar", use_container_width=True):
             with st.spinner("Procesando informes PDF/DOCX e indexando..."):
@@ -477,22 +495,27 @@ def main():
     # ==========================================
     # ENCABEZADO MINIMALISTA ESTILO SAAS / GEMINI
     # ==========================================
-    st.markdown("""
+    st.markdown(
+        """
     <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px;">
         <div class="app-header-title">💼 Consultor de Inteligencia Operativa y Proyectos</div>
         <div style="font-size: 0.82rem; color: #64748B;">Procesa Consultores &nbsp;·&nbsp; 4 Proyectos &nbsp;·&nbsp; SQLite + FTS5 + Gemini</div>
     </div>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
 
     # ==========================================
     # PESTAÑAS PRINCIPALES DE LA APLICACIÓN
     # ==========================================
-    tab_chat, tab_explorador, tab_config, tab_mcp = st.tabs([
-        "💬 Chatbot Consultor",
-        "📊 Explorador de Datos y Fichas",
-        "⚙️ Tabla SQLite 'Configuraciones'",
-        "🔌 Servidor MCP"
-    ])
+    tab_chat, tab_explorador, tab_config, tab_mcp = st.tabs(
+        [
+            "💬 Chatbot Consultor",
+            "📊 Explorador de Datos y Fichas",
+            "⚙️ Tabla SQLite 'Configuraciones'",
+            "🔌 Servidor MCP",
+        ]
+    )
 
     # ------------------------------------------
     # PESTAÑA 1: CHATBOT CONSULTOR (ESTILO GEMINI / CHATGPT)
@@ -503,7 +526,8 @@ def main():
         # Si no hay mensajes, mostrar bienvenida minimalista y espaciosa tipo Gemini
         if not st.session_state.mensajes:
             with chat_container:
-                st.markdown("""
+                st.markdown(
+                    """
                 <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 14px; padding: 36px 24px; margin: 30px auto; text-align: center; max-width: 650px;">
                     <div style="font-size: 2.4rem; margin-bottom: 10px;">💼</div>
                     <h3 style="margin: 0 0 10px 0; color: #0F172A; font-weight: 700; font-size: 1.3rem;">
@@ -516,13 +540,19 @@ def main():
                         💬 <i>Escribe tu consulta en la barra inferior para consultar el portafolio de proyectos.</i>
                     </div>
                 </div>
-                """, unsafe_allow_html=True)
+                """,
+                    unsafe_allow_html=True,
+                )
         else:
             with chat_container:
                 for mensaje in st.session_state.mensajes:
-                    with st.chat_message(mensaje["rol"], avatar="👤" if mensaje["rol"] == "user" else "🤖"):
+                    with st.chat_message(
+                        mensaje["rol"], avatar="👤" if mensaje["rol"] == "user" else "🤖"
+                    ):
                         if mensaje["rol"] == "assistant":
-                            st.markdown(resaltar_fuentes(mensaje["contenido"]), unsafe_allow_html=True)
+                            st.markdown(
+                                resaltar_fuentes(mensaje["contenido"]), unsafe_allow_html=True
+                            )
                             trazabilidad = mensaje.get("trazabilidad", [])
                             renderizar_trazabilidad(trazabilidad)
                         else:
@@ -548,11 +578,9 @@ def main():
                         renderizar_trazabilidad(traza)
 
             # Persistir respuesta del asistente en el historial
-            st.session_state.mensajes.append({
-                "rol": "assistant",
-                "contenido": texto_resp,
-                "trazabilidad": traza
-            })
+            st.session_state.mensajes.append(
+                {"rol": "assistant", "contenido": texto_resp, "trazabilidad": traza}
+            )
 
             # CRÍTICO: Rerun para que toda la conversación se pinte arriba en orden cronológico
             # y la caja st.chat_input quede SIEMPRE ABAJO del último mensaje y respuesta
@@ -566,7 +594,7 @@ def main():
         tipo_vista = st.radio(
             "Seleccionar vista:",
             ["Proyectos", "KPIs y Métricas", "Lecciones Aprendidas", "Visor de Fichas JSON"],
-            horizontal=True
+            horizontal=True,
         )
 
         if tipo_vista == "Proyectos":
@@ -574,11 +602,19 @@ def main():
             if proyectos:
                 df_p = pd.DataFrame(proyectos)
                 columnas_ver = [
-                    "codigo_proyecto", "cliente", "sector", "duracion_semanas",
-                    "gerente_proyecto", "estado", "fecha_aceptacion", "archivo_origen"
+                    "codigo_proyecto",
+                    "cliente",
+                    "sector",
+                    "duracion_semanas",
+                    "gerente_proyecto",
+                    "estado",
+                    "fecha_aceptacion",
+                    "archivo_origen",
                 ]
                 st.dataframe(df_p[columnas_ver], use_container_width=True, hide_index=True)
-                with st.expander("🔍 Ver detalles completos de proyectos (Alcance, Diagnóstico, Metodología)"):
+                with st.expander(
+                    "🔍 Ver detalles completos de proyectos (Alcance, Diagnóstico, Metodología)"
+                ):
                     st.dataframe(df_p, use_container_width=True, hide_index=True)
             else:
                 st.info("No hay proyectos registrados en la base de datos.")
@@ -588,8 +624,7 @@ def main():
             if kpis:
                 df_k = pd.DataFrame(kpis)
                 proy_filtro = st.selectbox(
-                    "Filtrar por proyecto:",
-                    ["Todos"] + list(df_k["codigo_proyecto"].unique())
+                    "Filtrar por proyecto:", ["Todos"] + list(df_k["codigo_proyecto"].unique())
                 )
                 if proy_filtro != "Todos":
                     df_k = df_k[df_k["codigo_proyecto"] == proy_filtro]
@@ -634,19 +669,23 @@ def main():
     # ------------------------------------------
     with tab_config:
         st.subheader("Gestión de la Tabla SQLite 'configuraciones'")
-        st.caption("Esta tabla almacena parámetros persistentes para evitar depender de archivos de entorno locales.")
+        st.caption(
+            "Esta tabla almacena parámetros persistentes para evitar depender de archivos de entorno locales."
+        )
 
         configs = config_mgr.get_all_configs()
         if configs:
-            df_cfg = pd.DataFrame([
-                {
-                    "Clave": k,
-                    "Valor": "••••••••" if "key" in k.lower() else v["valor"],
-                    "Descripción": v["descripcion"],
-                    "Última actualización": v["fecha_actualizacion"]
-                }
-                for k, v in configs.items()
-            ])
+            df_cfg = pd.DataFrame(
+                [
+                    {
+                        "Clave": k,
+                        "Valor": "••••••••" if "key" in k.lower() else v["valor"],
+                        "Descripción": v["descripcion"],
+                        "Última actualización": v["fecha_actualizacion"],
+                    }
+                    for k, v in configs.items()
+                ]
+            )
             st.dataframe(df_cfg, use_container_width=True, hide_index=True)
         else:
             st.info("No hay registros en la tabla configuraciones.")
@@ -664,7 +703,8 @@ def main():
 
         col_st1, col_st2 = st.columns([1, 1])
         with col_st1:
-            st.markdown("""
+            st.markdown(
+                """
             <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 10px; padding: 16px; margin-bottom: 16px;">
                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
                     <span style="font-size: 1.2rem;">🟢</span>
@@ -675,10 +715,13 @@ def main():
                     <b>Auto-levantamiento:</b> Los clientes MCP (Cursor, Claude Desktop, o scripts) levantan e interactúan automáticamente con el servidor como proceso hijo sin necesidad de abrir terminales adicionales.
                 </div>
             </div>
-            """, unsafe_allow_html=True)
+            """,
+                unsafe_allow_html=True,
+            )
 
         with col_st2:
-            st.markdown("""
+            st.markdown(
+                """
             <div style="background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 10px; padding: 16px; margin-bottom: 16px;">
                 <strong style="color: #1D4ED8; font-size: 0.95rem;">🛠️ Herramientas Registradas en el MCP:</strong>
                 <ul style="font-size: 0.85rem; color: #1E40AF; margin: 6px 0 0 0; padding-left: 20px;">
@@ -686,18 +729,15 @@ def main():
                     <li><code>buscar_texto(terminos_busqueda: str)</code>: Búsqueda léxica y semántica en índice virtual FTS5.</li>
                 </ul>
             </div>
-            """, unsafe_allow_html=True)
+            """,
+                unsafe_allow_html=True,
+            )
 
         ruta_mcp_abs = str((BASE_DIR / "src" / "mcp_server.py").resolve()).replace("\\", "\\\\")
         python_exe = sys.executable.replace("\\", "\\\\")
 
         config_mcp_dict = {
-            "mcpServers": {
-                "procesa-consultores": {
-                    "command": python_exe,
-                    "args": [ruta_mcp_abs]
-                }
-            }
+            "mcpServers": {"procesa-consultores": {"command": python_exe, "args": [ruta_mcp_abs]}}
         }
         config_mcp_str = json.dumps(config_mcp_dict, indent=2)
 
@@ -705,17 +745,24 @@ def main():
         st.caption("Copia y pega este bloque JSON en tu archivo de configuración del cliente MCP:")
         st.code(config_mcp_str, language="json")
 
-        st.caption("📁 **Ruta en Windows para Claude Desktop:** `%APPDATA%\\Claude\\claude_desktop_config.json`")
-        st.caption("📁 **Ruta en Cursor / Windsurf:** `.cursor/mcp.json` o en Configuración > Features > MCP.")
+        st.caption(
+            "📁 **Ruta en Windows para Claude Desktop:** `%APPDATA%\\Claude\\claude_desktop_config.json`"
+        )
+        st.caption(
+            "📁 **Ruta en Cursor / Windsurf:** `.cursor/mcp.json` o en Configuración > Features > MCP."
+        )
 
         st.markdown("---")
         st.markdown("#### 🧪 Prueba de Diagnóstico MCP en Vivo")
-        st.caption("Ejecuta una verificación de extremo a extremo a través del protocolo MCP para confirmar la comunicación:")
+        st.caption(
+            "Ejecuta una verificación de extremo a extremo a través del protocolo MCP para confirmar la comunicación:"
+        )
 
         if st.button("🚀 Ejecutar Diagnóstico MCP en Vivo"):
             with st.spinner("Conectando con el servidor MCP y ejecutando llamadas de prueba..."):
                 try:
                     import asyncio
+
                     from mcp.client.session import ClientSession
                     from mcp.client.stdio import StdioServerParameters, stdio_client
 
@@ -736,12 +783,18 @@ def main():
                                 tools_resp = await session.list_tools()
                                 res_sql = await session.call_tool(
                                     "consultar_sql",
-                                    {"query": "SELECT codigo_proyecto, cliente, estado FROM proyectos ORDER BY codigo_proyecto;"}
+                                    {
+                                        "query": "SELECT codigo_proyecto, cliente, estado FROM proyectos ORDER BY codigo_proyecto;"
+                                    },
                                 )
-                                return [t.name for t in tools_resp.tools], res_sql.content[0].text if res_sql.content else ""
+                                return [t.name for t in tools_resp.tools], res_sql.content[
+                                    0
+                                ].text if res_sql.content else ""
 
                     herramientas, resultado_sql = asyncio.run(_diagnostico())
-                    st.success(f"✅ Protocolo MCP 100% operativo. Herramientas detectadas: `{herramientas}`")
+                    st.success(
+                        f"✅ Protocolo MCP 100% operativo. Herramientas detectadas: `{herramientas}`"
+                    )
                     st.markdown("**Resultado obtenido vía MCP:**")
                     st.markdown(resultado_sql)
                 except Exception as e:

@@ -6,11 +6,15 @@ respuestas del agente y protocolo estricto anti-alucinación.
 
 import pytest
 
-from src.agent import AgenteProyectos
-from src.config_manager import ConfigManager
-from src.db import inicializar_bd, obtener_conexion, obtener_resumen_bd
-from src.extractor import ejecutar_ingesta_completa
-from src.tools import buscar_texto, consultar_sql
+from procesa_agent.agent.orchestrator import AgenteProyectos
+from procesa_agent.core.config_manager import ConfigManager
+from procesa_agent.infrastructure.db.connection import (
+    inicializar_bd,
+    obtener_conexion,
+    obtener_resumen_bd,
+)
+from procesa_agent.ingestion.extractor import ejecutar_ingesta_completa
+from procesa_agent.tools.tools import consultar_sql
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -24,7 +28,9 @@ def test_existencia_cuatro_proyectos():
     """Valida la existencia exacta de los 4 proyectos en SQLite tras la ingesta."""
     conn = obtener_conexion()
     cursor = conn.cursor()
-    filas = cursor.execute("SELECT codigo_proyecto, cliente FROM proyectos ORDER BY codigo_proyecto;").fetchall()
+    filas = cursor.execute(
+        "SELECT codigo_proyecto, cliente FROM proyectos ORDER BY codigo_proyecto;"
+    ).fetchall()
     conn.close()
 
     codigos = [f["codigo_proyecto"] for f in filas]
@@ -55,7 +61,9 @@ def test_exactitud_kpi_oee_plasticos():
 
     # Validación a través del Agente
     agente = AgenteProyectos()
-    respuesta = agente.responder("¿Cuál fue la línea base y resultado final de OEE en Plásticos del Pacífico?")
+    respuesta = agente.responder(
+        "¿Cuál fue la línea base y resultado final de OEE en Plásticos del Pacífico?"
+    )
     texto = respuesta["respuesta"]
     assert "58%" in texto
     assert "71%" in texto
@@ -78,7 +86,9 @@ def test_estado_no_cumplido_proveedores_la_canasta():
 
     # Validación a través del Agente
     agente = AgenteProyectos()
-    respuesta = agente.responder("¿Se cumplió la integración con proveedores en Supermercados La Canasta?")
+    respuesta = agente.responder(
+        "¿Se cumplió la integración con proveedores en Supermercados La Canasta?"
+    )
     texto = respuesta["respuesta"]
     assert "No cumplido" in texto
     assert "Informe_Cierre_PC-2026-006_Supermercados_La_Canasta.pdf" in texto
@@ -110,7 +120,9 @@ def test_reduccion_tiempo_espera_clinica_santa_lucia():
 def test_validacion_anti_alucinacion_cliente_inexistente():
     """Valida que una consulta sobre un cliente inexistente (ej. 'Banco Pichincha') retorne mensaje de información no documentada."""
     agente = AgenteProyectos()
-    respuesta = agente.responder("¿Qué proyectos o consultorías se ejecutaron para Banco Pichincha?")
+    respuesta = agente.responder(
+        "¿Qué proyectos o consultorías se ejecutaron para Banco Pichincha?"
+    )
     texto_esperado = "La información consultada no se encuentra disponible en los informes de proyectos registrados."
     assert respuesta["respuesta"].strip() == texto_esperado
 
@@ -156,24 +168,32 @@ def test_seguridad_sql_bloquea_funciones_no_permitidas():
 
 def test_seguridad_sql_timeout_cte_recursiva():
     """Valida que una consulta recursiva infinita/masiva se corte por el handler de timeout."""
-    res = consultar_sql("WITH RECURSIVE r(i) AS (VALUES(0) UNION ALL SELECT i+1 FROM r) SELECT count(*) FROM r;")
+    res = consultar_sql(
+        "WITH RECURSIVE r(i) AS (VALUES(0) UNION ALL SELECT i+1 FROM r) SELECT count(*) FROM r;"
+    )
     assert "timeout" in res.lower() or "interrumpida" in res.lower() or "cancelada" in res.lower()
 
 
 def test_seguridad_sql_limite_max_filas_truncado():
     """Valida que si una consulta excede MAX_FILAS (200), el resultado se trunque a 200 y se agregue la advertencia."""
-    res = consultar_sql("WITH RECURSIVE r(i) AS (VALUES(1) UNION ALL SELECT i+1 FROM r WHERE i < 250) SELECT i FROM r;")
+    res = consultar_sql(
+        "WITH RECURSIVE r(i) AS (VALUES(1) UNION ALL SELECT i+1 FROM r WHERE i < 250) SELECT i FROM r;"
+    )
     assert "truncado" in res.lower()
     assert "200" in res
 
 
 def test_seguridad_sql_consultas_legitimas_y_fts():
     """Valida que consultas SELECT legítimas sobre proyectos y sobre informes_fts (MATCH) funcionen sin problema."""
-    res_proj = consultar_sql("SELECT codigo_proyecto, cliente FROM proyectos ORDER BY codigo_proyecto;")
+    res_proj = consultar_sql(
+        "SELECT codigo_proyecto, cliente FROM proyectos ORDER BY codigo_proyecto;"
+    )
     assert "PC-2025-014" in res_proj
     assert "Total: 4 fila(s)" in res_proj
 
-    res_fts = consultar_sql("SELECT rowid, codigo_proyecto FROM informes_fts WHERE informes_fts MATCH 'calidad';")
+    res_fts = consultar_sql(
+        "SELECT rowid, codigo_proyecto FROM informes_fts WHERE informes_fts MATCH 'calidad';"
+    )
     assert "Total:" in res_fts
 
 
@@ -203,14 +223,18 @@ def test_linea_base_paradas_64h_prevalece_sobre_anexo():
     conn.close()
 
     assert fila is not None, "No se encontró el KPI de paradas no programadas para PC-2025-027"
-    assert "64 h/mes" in fila["linea_base"], f"Línea base esperada 64 h/mes, obtenida: {fila['linea_base']}"
+    assert "64 h/mes" in fila["linea_base"], (
+        f"Línea base esperada 64 h/mes, obtenida: {fila['linea_base']}"
+    )
     assert "31 h/mes" in fila["resultado"]
     assert "-52%" in fila["variacion"]
     assert fila["cumplimiento"] == "Cumplido"
 
     # Validación a través del Agente
     agente = AgenteProyectos()
-    respuesta = agente.responder("¿Qué línea base se tomó para las paradas no programadas en Plásticos del Pacífico y por qué?")
+    respuesta = agente.responder(
+        "¿Qué línea base se tomó para las paradas no programadas en Plásticos del Pacífico y por qué?"
+    )
     texto = respuesta["respuesta"]
     assert "64 h/mes" in texto
     assert "31 h/mes" in texto
@@ -228,21 +252,30 @@ def test_no_atribuibilidad_colocacion_horizonte_andino():
 
     # Comprobar que en la tabla relacional de KPIs del proyecto NO existe colocación como KPI evaluado
     indicadores = [f["indicador"].lower() for f in filas]
-    assert not any("colocación" in ind or "colocado" in ind for ind in indicadores), \
+    assert not any("colocación" in ind or "colocado" in ind for ind in indicadores), (
         "El +9% de colocación no debe registrarse como indicador/KPI del proyecto"
+    )
 
     # Validación a través del Agente
     agente = AgenteProyectos()
-    respuesta = agente.responder("¿Se debe registrar el +9% de colocación de Cooperativa Horizonte Andino como resultado del proyecto?")
+    respuesta = agente.responder(
+        "¿Se debe registrar el +9% de colocación de Cooperativa Horizonte Andino como resultado del proyecto?"
+    )
     texto = respuesta["respuesta"]
     assert "no atribuible" in texto.lower() or "campaña comercial" in texto.lower()
-    assert "no se registra" in texto.lower() or "no debe" in texto.lower() or "no constituye" in texto.lower()
+    assert (
+        "no se registra" in texto.lower()
+        or "no debe" in texto.lower()
+        or "no constituye" in texto.lower()
+    )
 
 
 def test_distincion_cerrado_con_pendientes_vs_cerrados():
     """Valida que todos los proyectos terminaron ejecución pero únicamente La Canasta tiene estado con pendientes."""
     agente = AgenteProyectos()
-    respuesta = agente.responder("¿Cuáles de los proyectos se consideran cerrados y cuál cerró con pendientes?")
+    respuesta = agente.responder(
+        "¿Cuáles de los proyectos se consideran cerrados y cuál cerró con pendientes?"
+    )
     texto = respuesta["respuesta"]
     assert "PC-2026-006" in texto or "Supermercados La Canasta" in texto
     assert "Cerrado con pendientes" in texto
@@ -259,7 +292,11 @@ def test_alcance_excluido_emergencia_santa_lucia():
     # Debe indicar claramente la exclusión del alcance
     assert "excluido" in texto.lower() or "excluidos" in texto.lower()
     assert "emergencia" in texto.lower()
-    assert "quirófano" in texto.lower() or "quirofano" in texto.lower() or "hospitalización" in texto.lower()
+    assert (
+        "quirófano" in texto.lower()
+        or "quirofano" in texto.lower()
+        or "hospitalización" in texto.lower()
+    )
     assert "consulta externa" in texto.lower()
     assert "no existen variaciones" in texto.lower() or "sin mediciones" in texto.lower()
     assert "Informe_Cierre_PC-2025-033_Clinica_Santa_Lucia.docx" in texto
@@ -273,5 +310,3 @@ def test_anti_alucinacion_honorarios_no_documentados():
     texto = respuesta["respuesta"]
 
     assert "no se encuentra documentado" in texto.lower() or "no disponible" in texto.lower()
-
-
