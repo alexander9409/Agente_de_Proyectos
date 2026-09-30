@@ -1,40 +1,61 @@
 """
-Servidor MCP (Model Context Protocol) para Procesa Consultores (src/mcp_server.py)
-Expone las herramientas 'consultar_sql' y 'buscar_texto' mediante el protocolo estándar MCP
-para su consumo por clientes compatibles: Google Gemini, Claude Desktop, Cursor, Windsurf, etc.
+Servidor MCP (Model Context Protocol) para Procesa Consultores.
+Genera dinámicamente las herramientas expuestas iterando el ToolRegistry centralizado.
+Permite el consumo por clientes compatibles: Google Gemini, Claude Desktop, Cursor, etc.
 """
+
+import inspect
+from typing import Any, Callable
 
 from mcp.server.mcpserver import MCPServer as FastMCP
 
-from procesa_agent.tools.tools import buscar_texto as tool_buscar_texto
-from procesa_agent.tools.tools import consultar_sql as tool_consultar_sql
+from procesa_agent.tools import Tool, ToolRegistry, get_default_registry
 
 # Inicializar servidor MCP con el nombre del agente
 mcp = FastMCP("AgenteConsultorIA")
 
 
-@mcp.tool()
-def consultar_sql(query: str) -> str:
+def _crear_handler_mcp(tool: Tool) -> Callable[..., str]:
     """
-    Ejecuta consultas SQL de solo lectura (SELECT) en la base de datos relacional SQLite de Procesa Consultores.
-    Tablas disponibles:
-    - proyectos (codigo_proyecto, cliente, sector, duracion_semanas, gerente_proyecto, estado, alcance_incluido, alcance_excluido, ...)
-    - kpis (codigo_proyecto, indicador, linea_base, meta, resultado, variacion, cumplimiento, ...)
-    - lecciones (codigo_proyecto, tema, titulo, descripcion)
+    Construye una función ejecutable con la signatura e introspección de parámetros
+    exacta requerida por FastMCP a partir de tool.parameters y tool.description.
     """
-    return tool_consultar_sql(query)
+    props = tool.parameters.get("properties", {})
+    params = []
+    for param_name in props:
+        params.append(
+            inspect.Parameter(
+                param_name,
+                inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                annotation=str,
+            )
+        )
+    sig = inspect.Signature(parameters=params, return_annotation=str)
+
+    def mcp_handler(*args: Any, **kwargs: Any) -> str:
+        bound = sig.bind(*args, **kwargs)
+        bound.apply_defaults()
+        resultado = tool.run(**bound.arguments)
+        return resultado["texto"]
+
+    mcp_handler.__name__ = tool.name
+    mcp_handler.__doc__ = tool.description
+    mcp_handler.__signature__ = sig  # type: ignore[attr-defined]
+    return mcp_handler
 
 
-@mcp.tool()
-def buscar_texto(terminos_busqueda: str) -> str:
-    """
-    Realiza búsquedas de texto completo (FTS5) en el contenido íntegro de los informes de consultoría.
-    Permite encontrar descripciones cualitativas, detalles metodológicos, justificaciones de alcance y lecciones aprendidas.
-    """
-    return tool_buscar_texto(terminos_busqueda)
+def registrar_herramientas_en_mcp(server: FastMCP, registry: ToolRegistry) -> None:
+    """Registra dinámicamente cada herramienta del registro en el servidor MCP."""
+    for tool in registry.all():
+        handler = _crear_handler_mcp(tool)
+        server.add_tool(handler, name=tool.name, description=tool.description)
 
 
-def main():
+# Registrar herramientas del registro oficial por defecto
+registrar_herramientas_en_mcp(mcp, get_default_registry())
+
+
+def main() -> None:
     """Ejecuta el servidor en modo estándar stdio."""
     mcp.run(transport="stdio")
 

@@ -9,6 +9,9 @@ class ProcesaAgentError(Exception):
     pass
 
 
+ProcesaError = ProcesaAgentError
+
+
 class SecurityError(ProcesaAgentError):
     """Excepción disparada por violación de seguridad SQL o acceso indebido a recursos."""
 

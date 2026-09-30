@@ -35,3 +35,8 @@ class Settings(BaseSettings):
 
 # Instancia singleton predeterminada
 settings = Settings()
+
+
+def get_settings() -> Settings:
+    """Retorna la instancia global de configuración del sistema."""
+    return settings
