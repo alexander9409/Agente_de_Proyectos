@@ -14,7 +14,9 @@ from procesa_agent.domain.models import FichaProyecto
 
 
 def get_default_db_path() -> str:
-    """Retorna la ruta absoluta por defecto a database.sqlite dentro de data/."""
+    """Retorna la ruta a database.sqlite, o la definida en PROCESA_DB_PATH para tests aislados."""
+    if "PROCESA_DB_PATH" in os.environ and os.environ["PROCESA_DB_PATH"]:
+        return os.environ["PROCESA_DB_PATH"]
     DEFAULT_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     return str(DEFAULT_DB_PATH)
 

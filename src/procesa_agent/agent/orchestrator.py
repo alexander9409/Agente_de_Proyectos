@@ -11,6 +11,7 @@ from procesa_agent.agent.memory import ConversationMemory
 from procesa_agent.agent.prompt_loader import PromptLoader
 from procesa_agent.core.logging import logger
 from procesa_agent.core.settings import get_settings
+from procesa_agent.infrastructure.db.connection import get_default_db_path
 from procesa_agent.infrastructure.llm.base import ChatSession, LLMProvider
 from procesa_agent.infrastructure.llm.gemini import GeminiProvider
 from procesa_agent.tools.base import ToolRegistry, ToolResult, get_default_registry
@@ -32,7 +33,7 @@ class AgenteProyectos:
         config_mgr: Optional[Any] = None,
     ) -> None:
         settings = get_settings()
-        self.db_path = db_path or getattr(config_mgr, "db_path", None) or settings.sqlite_db_path
+        self.db_path = db_path or getattr(config_mgr, "db_path", None) or get_default_db_path()
         self.tool_registry = tool_registry or get_default_registry()
         self.prompt_loader = prompt_loader or PromptLoader(db_path=self.db_path)
         self.memory = memory or ConversationMemory(max_turns=10)

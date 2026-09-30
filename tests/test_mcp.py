@@ -15,7 +15,7 @@ from mcp.client.stdio import StdioServerParameters, stdio_client
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-def test_mcp_server_tools_registration():
+def test_mcp_server_tools_registration(bd_con_datos):
     """Valida que el servidor MCP inicie y exponga las herramientas 'consultar_sql' y 'buscar_texto'."""
 
     async def _test():
@@ -42,7 +42,7 @@ def test_mcp_server_tools_registration():
     asyncio.run(_test())
 
 
-def test_mcp_server_tool_execution():
+def test_mcp_server_tool_execution(bd_con_datos):
     """Valida la ejecución de una consulta SQL mediante el protocolo MCP."""
 
     async def _test():

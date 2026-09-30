@@ -1,0 +1,54 @@
+name: CI / CD Pipeline
+
+on:
+  push:
+    branches: [main, "refactor/**"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Python ${{ matrix.python-version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ["3.11", "3.12", "3.13"]
+        include:
+          - os: ubuntu-latest
+            python-version: "3.14"
+          - os: windows-latest
+            python-version: "3.14"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          check-latest: true
+          allow-prereleases: true
+
+      - name: Install dependencies and dev tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[dev]
+
+      - name: Ruff Lint Analysis
+        run: |
+          python -m ruff check .
+
+      - name: Ruff Format Verification
+        run: |
+          python -m ruff format --check .
+
+      - name: Mypy Static Type Checking
+        run: |
+          python -m mypy src/procesa_agent
+
+      - name: Pytest Isolated Test Suite
+        run: |
+          python -m pytest -m "not live" --cov=procesa_agent --cov-report=term-missing

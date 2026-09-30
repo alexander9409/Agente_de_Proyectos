@@ -9,19 +9,16 @@ import pytest
 from procesa_agent.agent.orchestrator import AgenteProyectos
 from procesa_agent.core.config_manager import ConfigManager
 from procesa_agent.infrastructure.db.connection import (
-    inicializar_bd,
     obtener_conexion,
     obtener_resumen_bd,
 )
-from procesa_agent.ingestion.extractor import ejecutar_ingesta_completa
 from procesa_agent.tools.tools import consultar_sql
 
 
-@pytest.fixture(scope="session", autouse=True)
-def preparar_base_datos():
-    """Asegura que la base de datos esté inicializada e ingerida antes de los tests."""
-    inicializar_bd()
-    ejecutar_ingesta_completa()
+@pytest.fixture(autouse=True)
+def aislar_tests_bd(bd_con_datos):
+    """Garantiza que todos los tests de este módulo se ejecuten sobre la BD efímera aislada."""
+    pass
 
 
 def test_existencia_cuatro_proyectos():
