@@ -416,39 +416,6 @@ def main():
             <b>Pipeline:</b> Ingesta (4) ➔ SQLite & FTS5 ➔ Agente IA
         </div>
         """, unsafe_allow_html=True)
-
-        st.markdown("---")
-        st.subheader("💡 Atajos de Consulta Rápida")
-        st.caption("Preguntas sugeridas del caso de negocio:")
-        with st.expander("📌 Ver 9 consultas sugeridas", expanded=True):
-            if st.button("⏱️ Proyectos ≥ 20 semanas", use_container_width=True):
-                st.session_state.prompt_prellenado = "¿Qué proyectos tuvieron una duración igual o superior a 20 semanas?"
-                st.rerun()
-            if st.button("📈 OEE Plásticos del Pacífico", use_container_width=True):
-                st.session_state.prompt_prellenado = "¿Cuál fue el OEE de Plásticos del Pacífico, su línea base y resultado final?"
-                st.rerun()
-            if st.button("❌ Proveedores La Canasta", use_container_width=True):
-                st.session_state.prompt_prellenado = "¿Se cumplió la integración con proveedores en Supermercados La Canasta y cuál fue la causa?"
-                st.rerun()
-            if st.button("🏥 Espera Clínica Santa Lucía", use_container_width=True):
-                st.session_state.prompt_prellenado = "¿Cuánto se redujo el tiempo total de espera del paciente en Clínica Santa Lucía?"
-                st.rerun()
-            if st.button("👥 Gerentes de Proyecto", use_container_width=True):
-                st.session_state.prompt_prellenado = "¿Quiénes fueron los gerentes de proyecto y qué proyectos lideraron?"
-                st.rerun()
-            if st.button("🛡️ Prueba Anti-Alucinación", use_container_width=True):
-                st.session_state.prompt_prellenado = "¿Qué proyectos se realizaron para Banco Pichincha?"
-                st.rerun()
-            if st.button("🏭 Paradas 64 h/mes (Línea Base)", use_container_width=True):
-                st.session_state.prompt_prellenado = "¿Qué línea base se tomó para las paradas no programadas en Plásticos del Pacífico y por qué prevalece sobre el anexo?"
-                st.rerun()
-            if st.button("🏦 +9% Colocación (No Atribuible)", use_container_width=True):
-                st.session_state.prompt_prellenado = "¿Se debe registrar el +9% de colocación de Cooperativa Horizonte Andino como resultado del proyecto?"
-                st.rerun()
-            if st.button("📋 Cerrados vs Pendientes", use_container_width=True):
-                st.session_state.prompt_prellenado = "¿Cuáles de los proyectos se consideran cerrados y cuál cerró con pendientes?"
-                st.rerun()
-
         st.markdown("---")
         st.subheader("⚙️ Configuración Gemini")
 
@@ -543,7 +510,7 @@ def main():
                         Consulta métricas oficiales de cierre, duraciones, causas de desvío, lecciones aprendidas o metodologías de <b>Procesa Consultores</b> con rigor analítico y cero alucinaciones.
                     </p>
                     <div style="display: inline-block; background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 20px; padding: 7px 18px; font-size: 0.84rem; color: #1D4ED8; font-weight: 500;">
-                        💡 <i>Selecciona una consulta rápida en el menú lateral izquierdo o escribe tu pregunta abajo.</i>
+                        💬 <i>Escribe tu consulta en la barra inferior para consultar el portafolio de proyectos.</i>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
@@ -559,10 +526,7 @@ def main():
                             st.markdown(mensaje["contenido"])
 
         # Entrada del usuario: SIEMPRE ABAJO, después del contenedor de mensajes
-        prompt_sidebar = st.session_state.pop("prompt_prellenado", None)
-        prompt_chat = st.chat_input("Escribe tu consulta sobre los proyectos...")
-
-        pregunta = prompt_sidebar or prompt_chat
+        pregunta = st.chat_input("Escribe tu consulta sobre los proyectos...")
 
         if pregunta:
             # Mostrar la pregunta de inmediato en el contenedor
