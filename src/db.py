@@ -21,6 +21,74 @@ def get_default_db_path() -> str:
     return str(data_dir / "database.sqlite")
 
 
+TABLAS_PERMITIDAS = {"proyectos", "kpis", "lecciones", "informes_fts", "reglas_negocio"}
+FUNCIONES_PERMITIDAS = {
+    "count", "sum", "avg", "min", "max", "lower", "upper", "substr", "length",
+    "coalesce", "round", "like", "instr", "replace", "trim", "cast", "abs",
+    "snippet", "rank", "bm25", "highlight", "match", "date", "strftime", "group_concat"
+}
+
+
+def _crear_handler_timeout(timeout_s: float):
+    import time
+    inicio = time.time()
+
+    def handler():
+        if time.time() - inicio > timeout_s:
+            return 1  # Aborta la consulta con sqlite3.OperationalError: interrupted
+        return 0
+
+    return handler
+
+
+def conexion_solo_lectura(db_path: Optional[str] = None, timeout_s: float = 3.0) -> sqlite3.Connection:
+    """
+    Crea una conexión estrictamente de solo lectura a SQLite con:
+    - Modo URI '?mode=ro' (bloquea escrituras a nivel de SO / motor SQLite).
+    - sqlite3 authorizer con lista blanca estricta de tablas y funciones permitidas.
+    - Bloqueo total de lectura a la tabla sensible 'configuraciones'.
+    - Progress handler para cortar consultas que excedan el timeout configurado.
+    """
+    path_str = db_path or os.getenv("SQLITE_DB_PATH") or get_default_db_path()
+    resolved_path = Path(path_str).resolve().as_posix()
+    conn = sqlite3.connect(f"file:{resolved_path}?mode=ro", uri=True, timeout=timeout_s)
+    conn.row_factory = sqlite3.Row
+
+    def authorizer(action, arg1, arg2, db_name, trigger):
+        # Permitir sentencias SELECT y recursión CTE
+        if action in (sqlite3.SQLITE_SELECT, 33):  # 33 = SQLITE_RECURSIVE
+            return sqlite3.SQLITE_OK
+
+        # Filtrar lectura de tablas
+        if action == sqlite3.SQLITE_READ:
+            # Permitir lectura de expresiones temporales o CTEs en memoria (db_name es None)
+            if db_name is None:
+                return sqlite3.SQLITE_OK
+            # Para tablas en base de datos, validar estrictamente contra la lista blanca permitida
+            if arg1 in TABLAS_PERMITIDAS or (arg1 and arg1.startswith("informes_fts")):
+                return sqlite3.SQLITE_OK
+            return sqlite3.SQLITE_DENY
+
+        # Filtrar funciones invocadas
+        if action == sqlite3.SQLITE_FUNCTION:
+            if arg2 and arg2.lower() in FUNCIONES_PERMITIDAS:
+                return sqlite3.SQLITE_OK
+            return sqlite3.SQLITE_DENY
+
+        # Permitir lectura de data_version que SQLite invoca internamente
+        if action == sqlite3.SQLITE_PRAGMA:
+            if arg1 == "data_version":
+                return sqlite3.SQLITE_OK
+            return sqlite3.SQLITE_DENY
+
+        # Todo lo demás (INSERT, UPDATE, DELETE, DROP, ATTACH, etc.) se deniega
+        return sqlite3.SQLITE_DENY
+
+    conn.set_authorizer(authorizer)
+    conn.set_progress_handler(_crear_handler_timeout(timeout_s), 1_000)
+    return conn
+
+
 def obtener_conexion(db_path: Optional[str] = None) -> sqlite3.Connection:
     """
     Crea y retorna una conexión a SQLite con PRAGMA foreign_keys = ON

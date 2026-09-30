@@ -36,7 +36,6 @@ def consultar_sql(query: str) -> str:
     - proyectos (codigo_proyecto, cliente, sector, duracion_semanas, gerente_proyecto, estado, alcance_incluido, alcance_excluido, ...)
     - kpis (codigo_proyecto, indicador, linea_base, meta, resultado, variacion, cumplimiento, ...)
     - lecciones (codigo_proyecto, tema, titulo, descripcion)
-    - configuraciones (clave, valor, descripcion)
     """
     return tool_consultar_sql(query)
 

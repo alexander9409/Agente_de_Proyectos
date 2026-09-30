@@ -420,9 +420,11 @@ def main():
         st.subheader("⚙️ Configuración Gemini")
 
         key_actual = config_mgr.gemini_api_key or ""
+        placeholder_key = "•••••••• (Guardada en sistema)" if key_actual else "Pega tu GEMINI_API_KEY..."
         input_api_key = st.text_input(
             "GEMINI_API_KEY",
-            value=key_actual,
+            value="",
+            placeholder=placeholder_key,
             type="password",
             help="Clave API de Google AI Studio / Gemini. Se prioriza la almacenada en SQLite.",
         )
@@ -639,7 +641,7 @@ def main():
             df_cfg = pd.DataFrame([
                 {
                     "Clave": k,
-                    "Valor": "***" if "key" in k.lower() else v["valor"],
+                    "Valor": "••••••••" if "key" in k.lower() else v["valor"],
                     "Descripción": v["descripcion"],
                     "Última actualización": v["fecha_actualizacion"]
                 }

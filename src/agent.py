@@ -138,7 +138,8 @@ class AgenteProyectos:
         """Despacha la ejecución local de la herramienta retornando (texto_md, datos_estructurados)."""
         if nombre_tool == "consultar_sql":
             query = args.get("query", "")
-            return consultar_sql_detallado(query, self.db_path)
+            params = args.get("params")
+            return consultar_sql_detallado(query, params=params, db_path=self.db_path)
         elif nombre_tool == "buscar_texto":
             terminos = args.get("terminos_busqueda", "")
             return buscar_texto_detallado(terminos, self.db_path)
@@ -237,19 +238,18 @@ class AgenteProyectos:
         msg = mensaje_usuario.lower().strip()
 
         # 1. Protocolo Anti-alucinación explícito (clientes o entidades inexistentes)
-        conn = obtener_conexion(self.db_path)
-        cur = conn.cursor()
         palabras_sospechosas = ["banco", "pichincha", "farmacia", "petrolera", "telecom", "aerolínea"]
         es_sospechosa = any(p in msg for p in palabras_sospechosas) and not any(
             c in msg for c in ["cooperativa", "horizonte andino", "plásticos", "pacífico", "santa lucía", "canasta"]
         )
 
         if es_sospechosa:
-            q = f"SELECT * FROM proyectos WHERE cliente LIKE '%{mensaje_usuario.strip()}%';"
-            res_sql, datos_sql = self._ejecutar_herramienta_local("consultar_sql", {"query": q})
+            q = "SELECT * FROM proyectos WHERE cliente LIKE ?;"
+            params = [f"%{mensaje_usuario.strip()}%"]
+            res_sql, datos_sql = self._ejecutar_herramienta_local("consultar_sql", {"query": q, "params": params})
             trazabilidad.append({
                 "herramienta": "consultar_sql",
-                "argumentos": {"query": q},
+                "argumentos": {"query": q, "params": params},
                 "resultado": res_sql,
                 "datos": datos_sql,
             })

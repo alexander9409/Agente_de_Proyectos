@@ -116,7 +116,7 @@ def test_validacion_anti_alucinacion_cliente_inexistente():
 
 
 def test_seguridad_sql_rechaza_escritura():
-    """Valida que consultar_sql rechace intentos de inyección o modificación DDL/DML."""
+    """Valida que consultar_sql rechace intentos de inyección o modificación DDL/DML, ATTACH y PRAGMA."""
     res_drop = consultar_sql("DROP TABLE proyectos;")
     assert "Error de seguridad" in res_drop
 
@@ -125,6 +125,63 @@ def test_seguridad_sql_rechaza_escritura():
 
     res_insert = consultar_sql("INSERT INTO proyectos (codigo_proyecto) VALUES ('TEST');")
     assert "Error de seguridad" in res_insert
+
+    res_update = consultar_sql("UPDATE proyectos SET cliente = 'Hacked';")
+    assert "Error de seguridad" in res_update
+
+    res_attach = consultar_sql("ATTACH DATABASE 'foo.db' AS foo;")
+    assert "Error de seguridad" in res_attach
+
+    res_pragma = consultar_sql("PRAGMA table_info(proyectos);")
+    assert "Error de seguridad" in res_pragma
+
+
+def test_seguridad_sql_bloquea_tabla_configuraciones():
+    """Valida que la tabla 'configuraciones' (que almacena claves y secretos) nunca sea accesible desde consultar_sql."""
+    res = consultar_sql("SELECT clave, valor FROM configuraciones;")
+    assert "Error de seguridad" in res or "denegado" in res.lower()
+
+
+def test_seguridad_sql_bloquea_multiples_sentencias():
+    """Valida que no se permitan múltiples sentencias separadas por punto y coma."""
+    res = consultar_sql("SELECT 1; SELECT 2;")
+    assert "Error de seguridad" in res
+
+
+def test_seguridad_sql_bloquea_funciones_no_permitidas():
+    """Valida que funciones peligrosas como load_extension sean bloqueadas por el autorizador."""
+    res = consultar_sql("SELECT load_extension('malicious.dll');")
+    assert "Error de seguridad" in res or "denegado" in res.lower()
+
+
+def test_seguridad_sql_timeout_cte_recursiva():
+    """Valida que una consulta recursiva infinita/masiva se corte por el handler de timeout."""
+    res = consultar_sql("WITH RECURSIVE r(i) AS (VALUES(0) UNION ALL SELECT i+1 FROM r) SELECT count(*) FROM r;")
+    assert "timeout" in res.lower() or "interrumpida" in res.lower() or "cancelada" in res.lower()
+
+
+def test_seguridad_sql_limite_max_filas_truncado():
+    """Valida que si una consulta excede MAX_FILAS (200), el resultado se trunque a 200 y se agregue la advertencia."""
+    res = consultar_sql("WITH RECURSIVE r(i) AS (VALUES(1) UNION ALL SELECT i+1 FROM r WHERE i < 250) SELECT i FROM r;")
+    assert "truncado" in res.lower()
+    assert "200" in res
+
+
+def test_seguridad_sql_consultas_legitimas_y_fts():
+    """Valida que consultas SELECT legítimas sobre proyectos y sobre informes_fts (MATCH) funcionen sin problema."""
+    res_proj = consultar_sql("SELECT codigo_proyecto, cliente FROM proyectos ORDER BY codigo_proyecto;")
+    assert "PC-2025-014" in res_proj
+    assert "Total: 4 fila(s)" in res_proj
+
+    res_fts = consultar_sql("SELECT rowid, codigo_proyecto FROM informes_fts WHERE informes_fts MATCH 'calidad';")
+    assert "Total:" in res_fts
+
+
+def test_seguridad_fallback_inyeccion_sql():
+    """Valida que entradas maliciosas tipo SQLi en fallback no rompan la consulta ni expongan datos indebidos."""
+    agente = AgenteProyectos()
+    respuesta = agente.responder("Banco ' OR 1=1 --")
+    assert "no se encuentra disponible" in respuesta["respuesta"].lower()
 
 
 def test_persistencia_configuraciones():

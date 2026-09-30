@@ -8,7 +8,9 @@ import re
 import sqlite3
 from typing import Optional
 
-from src.db import get_default_db_path, obtener_conexion
+from src.db import conexion_solo_lectura, get_default_db_path, obtener_conexion
+
+MAX_FILAS = 200
 
 PALABRAS_PROHIBIDAS_SQL = [
     r"\bINSERT\b",
@@ -29,9 +31,17 @@ PALABRAS_PROHIBIDAS_SQL = [
 def validar_seguridad_sql(query: str) -> None:
     """
     Verifica que el query sea exclusivamente de solo lectura (SELECT / WITH).
-    Lanza PermissionError si se detecta cualquier instrucción DDL o DML peligrosa.
+    Lanza PermissionError si se detecta cualquier instrucción DDL o DML peligrosa o múltiples sentencias.
     """
     query_limpio = query.strip()
+
+    # Rechazar múltiples sentencias separadas por punto y coma
+    sentencias = [s.strip() for s in query.split(";") if s.strip()]
+    if len(sentencias) > 1:
+        raise PermissionError(
+            "Seguridad violada: No se permiten múltiples sentencias SQL en una sola consulta."
+        )
+
     if not (query_limpio.upper().startswith("SELECT") or query_limpio.upper().startswith("WITH")):
         raise PermissionError(
             "Seguridad violada: Solo se permiten consultas de solo lectura que inicien con SELECT o WITH."
@@ -45,9 +55,14 @@ def validar_seguridad_sql(query: str) -> None:
             )
 
 
-def consultar_sql_detallado(query: str, db_path: Optional[str] = None) -> tuple[str, list[dict]]:
+def consultar_sql_detallado(
+    query: str,
+    params: Optional[Any] = None,
+    db_path: Optional[str] = None
+) -> tuple[str, list[dict]]:
     """
-    Ejecuta una consulta SQL de solo lectura (SELECT) sobre la base de datos SQLite.
+    Ejecuta una consulta SQL de solo lectura (SELECT) sobre la base de datos SQLite
+    utilizando una conexión segura de solo lectura con autorizador y control de timeout.
     Retorna una tupla: (tabla_markdown, lista_de_diccionarios_con_las_filas).
     """
     try:
@@ -57,13 +72,19 @@ def consultar_sql_detallado(query: str, db_path: Optional[str] = None) -> tuple[
 
     conn = None
     try:
-        conn = obtener_conexion(db_path)
+        conn = conexion_solo_lectura(db_path, timeout_s=3.0)
         cursor = conn.cursor()
-        cursor.execute(query)
-        filas = cursor.fetchall()
+        cursor.execute(query, params or ())
+        
+        # Obtener hasta MAX_FILAS + 1 para comprobar si excede el límite
+        filas = cursor.fetchmany(MAX_FILAS + 1)
 
         if not filas:
             return "La consulta SQL se ejecutó exitosamente pero no arrojó ninguna fila (0 resultados).", []
+
+        truncado = len(filas) > MAX_FILAS
+        if truncado:
+            filas = filas[:MAX_FILAS]
 
         # Convertir a lista de diccionarios
         datos_dict = [dict(fila) for fila in filas]
@@ -83,9 +104,17 @@ def consultar_sql_detallado(query: str, db_path: Optional[str] = None) -> tuple[
 
         resultado_md = "\n".join(lineas)
         total_filas = len(filas)
-        res_final = f"{resultado_md}\n\n*Total: {total_filas} fila(s) obtenida(s).*"
+        aviso_truncado = f"\n\n*(Resultado truncado a {MAX_FILAS} filas por política de seguridad)*" if truncado else ""
+        res_final = f"{resultado_md}\n\n*Total: {total_filas} fila(s) obtenida(s).*{aviso_truncado}"
         return res_final, datos_dict
 
+    except (sqlite3.DatabaseError, PermissionError) as e:
+        msg = str(e)
+        if "prohibited" in msg or "not authorized" in msg:
+            return "Error de seguridad: Acceso denegado a la tabla o función solicitada.", []
+        if "interrupted" in msg:
+            return "Error de seguridad: La consulta fue interrumpida por exceder el tiempo límite de ejecución (timeout).", []
+        return f"Error de seguridad o ejecución SQL: {msg}", []
     except sqlite3.Error as e:
         return f"Error de sintaxis o ejecución SQL: {e}", []
     except Exception as ex:
@@ -95,13 +124,13 @@ def consultar_sql_detallado(query: str, db_path: Optional[str] = None) -> tuple[
             conn.close()
 
 
-def consultar_sql(query: str, db_path: Optional[str] = None) -> str:
+def consultar_sql(query: str, params: Optional[Any] = None, db_path: Optional[str] = None) -> str:
     """
     Ejecuta una consulta SQL de solo lectura (SELECT) sobre la base de datos SQLite
     de proyectos, métricas (kpis) y lecciones aprendidas.
     Retorna el resultado formateado en una tabla Markdown legible.
     """
-    resultado_md, _ = consultar_sql_detallado(query, db_path)
+    resultado_md, _ = consultar_sql_detallado(query, params=params, db_path=db_path)
     return resultado_md
 
 
