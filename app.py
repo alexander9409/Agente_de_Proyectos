@@ -305,6 +305,14 @@ def main():
         if cols_btn2[2].button("🛡️ Prueba Anti-Alucinación", use_container_width=True):
             st.session_state.prompt_prellenado = "¿Qué proyectos se realizaron para Banco Pichincha?"
 
+        cols_btn3 = st.columns(3)
+        if cols_btn3[0].button("🏭 Paradas 64 h/mes (Línea Base)", use_container_width=True):
+            st.session_state.prompt_prellenado = "¿Qué línea base se tomó para las paradas no programadas en Plásticos del Pacífico y por qué prevalece sobre el anexo?"
+        if cols_btn3[1].button("🏦 +9% Colocación (No Atribuible)", use_container_width=True):
+            st.session_state.prompt_prellenado = "¿Se debe registrar el +9% de colocación de Cooperativa Horizonte Andino como resultado del proyecto?"
+        if cols_btn3[2].button("📋 Proyectos Cerrados vs Pendientes", use_container_width=True):
+            st.session_state.prompt_prellenado = "¿Cuáles de los proyectos se consideran cerrados y cuál cerró con pendientes?"
+
         st.markdown("---")
 
         # Mostrar historial de conversación

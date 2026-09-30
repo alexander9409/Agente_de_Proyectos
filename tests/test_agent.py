@@ -133,3 +133,61 @@ def test_persistencia_configuraciones():
     cfg.set_config("test_key", "valor_123", "Configuración de prueba")
     valor = cfg.get_config("test_key")
     assert valor == "valor_123"
+
+
+def test_linea_base_paradas_64h_prevalece_sobre_anexo():
+    """Valida que la línea base de paradas no programadas sea 64 h/mes y prevalezca sobre el anexo."""
+    conn = obtener_conexion()
+    cursor = conn.cursor()
+    fila = cursor.execute(
+        "SELECT indicador, linea_base, meta, resultado, variacion, cumplimiento "
+        "FROM kpis WHERE codigo_proyecto = 'PC-2025-027' AND indicador LIKE '%paradas%';"
+    ).fetchone()
+    conn.close()
+
+    assert fila is not None, "No se encontró el KPI de paradas no programadas para PC-2025-027"
+    assert "64 h/mes" in fila["linea_base"], f"Línea base esperada 64 h/mes, obtenida: {fila['linea_base']}"
+    assert "31 h/mes" in fila["resultado"]
+    assert "-52%" in fila["variacion"]
+    assert fila["cumplimiento"] == "Cumplido"
+
+    # Validación a través del Agente
+    agente = AgenteProyectos()
+    respuesta = agente.responder("¿Qué línea base se tomó para las paradas no programadas en Plásticos del Pacífico y por qué?")
+    texto = respuesta["respuesta"]
+    assert "64 h/mes" in texto
+    assert "31 h/mes" in texto
+    assert "prevalece" in texto.lower()
+
+
+def test_no_atribuibilidad_colocacion_horizonte_andino():
+    """Valida que el +9% de colocación no conste como resultado de consultoría y sea no atribuible."""
+    conn = obtener_conexion()
+    cursor = conn.cursor()
+    filas = cursor.execute(
+        "SELECT indicador, resultado FROM kpis WHERE codigo_proyecto = 'PC-2025-014';"
+    ).fetchall()
+    conn.close()
+
+    # Comprobar que en la tabla relacional de KPIs del proyecto NO existe colocación como KPI evaluado
+    indicadores = [f["indicador"].lower() for f in filas]
+    assert not any("colocación" in ind or "colocado" in ind for ind in indicadores), \
+        "El +9% de colocación no debe registrarse como indicador/KPI del proyecto"
+
+    # Validación a través del Agente
+    agente = AgenteProyectos()
+    respuesta = agente.responder("¿Se debe registrar el +9% de colocación de Cooperativa Horizonte Andino como resultado del proyecto?")
+    texto = respuesta["respuesta"]
+    assert "no atribuible" in texto.lower() or "campaña comercial" in texto.lower()
+    assert "no se registra" in texto.lower() or "no debe" in texto.lower() or "no constituye" in texto.lower()
+
+
+def test_distincion_cerrado_con_pendientes_vs_cerrados():
+    """Valida que todos los proyectos terminaron ejecución pero únicamente La Canasta tiene estado con pendientes."""
+    agente = AgenteProyectos()
+    respuesta = agente.responder("¿Cuáles de los proyectos se consideran cerrados y cuál cerró con pendientes?")
+    texto = respuesta["respuesta"]
+    assert "PC-2026-006" in texto or "Supermercados La Canasta" in texto
+    assert "Cerrado con pendientes" in texto
+    assert "Informe_Cierre_PC-2026-006_Supermercados_La_Canasta.pdf" in texto
+

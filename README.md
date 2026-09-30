@@ -111,7 +111,39 @@ Cada campo de `FichaProyecto` en [`src/models.py`](file:///c:/Users/edwal/Downlo
 
 ---
 
-## 4. 🚀 Guía de Instalación y Ejecución
+## 4. 🎯 Criterios de Fiabilidad de Datos y Gestión de Discrepancias Documentales
+
+En proyectos de consultoría estratégica y auditoría de procesos, los informes de cierre contienen múltiples capas de información (tablas oficiales de cierre, narrativas ejecutivas, notas al pie, anexos operacionales y mediciones intermedias). Para garantizar **cero alucinaciones, consistencia matemática y trazabilidad fidedigna**, el sistema implementa las siguientes reglas universales de gobernanza de datos:
+
+### 1. Regla de Prevalencia de la Tabla Oficial de Cierre
+* **Principio Rector:** La **tabla oficial de resultados del informe de cierre** constituye la verdad formal y contractual aceptada por el cliente. Prevalece inequívocamente sobre cualquier borrador, anexo técnico o medición preliminar.
+* **Medición Preliminar vs. Cierre Definitivo (Caso Clínica Santa Lucía `PC-2025-033`):**
+  - *Contexto:* El texto del informe menciona una medición preliminar en diciembre de 2025 que arrojó una reducción del **30%** en el tiempo de espera.
+  - *Resolución del Sistema:* La herramienta y el agente toman de forma estricta el resultado de cierre: **reducción del 24%** (tiempo final: 39,5 min frente a línea base de 52 min). Esta medición fue formalizada en febrero de 2026 e incorporó la estacionalidad de mayor demanda por inicio de clases escolares. El valor del 30% se conserva como insight de contexto en la narrativa, pero la métrica relacional oficial y vinculante es `-24%`.
+* **Anexos Técnicos vs. Tabla Oficial (Caso Plásticos del Pacífico `PC-2025-027`):**
+  - *Contexto:* El *Anexo A* ("Principales causas de parada en la línea base") desglosa horas por fallas mecánicas, atascos, falta de material y ajustes, cuya sumatoria bruta asciende a 84 h/mes (o 122 h/mes si se sumaran los cambios de formato). Sin embargo, la tabla oficial de indicadores de la Sección 7.2 establece una línea base de **64 h/mes**.
+  - *Resolución del Sistema:* Como regla general, **cuando un anexo no coincide con la tabla oficial de resultados, prevalece la tabla**. El sistema toma como línea base oficial **64 h/mes**, ya que sobre este valor exacto se calcularon la meta ($\le 38$ h/mes), el resultado alcanzado ($31$ h/mes) y la variación porcentual contractual ($-52\% = -33/64$). El anexo se presenta como desglose cualitativo para comprender las causas raíz, pero no sustituye la base matemática oficial.
+
+### 2. Aislamiento de Variables Externas y No Atribuibilidad (+9% de Colocación en `PC-2025-014`)
+* *Contexto:* En el proyecto de la *Cooperativa Horizonte Andino*, el cliente reportó un incremento de **+9% en el monto colocado** de microcrédito y crédito de consumo entre el primer y segundo trimestre de 2025.
+* *Resolución del Sistema:* **El +9% no debe registrarse como resultado del proyecto de consultoría.** El informe aclara que este aumento respondió a una campaña comercial del cliente ejecutada en paralelo.
+* *Implementación:* El sistema excluye esta cifra de la tabla relacional de KPIs atribuibles (manteniendo únicamente los 5 indicadores de proceso: tiempo de aprobación, solicitudes con reproceso, productividad de analistas, satisfacción de socios y tasa de abandono). Si el usuario consulta sobre crecimiento de colocación, el agente lo reporta explícitamente como **dato de contexto no atribuible**, preservando la ética de atribución de la consultora.
+
+### 3. Distinción Semántica: "Proyectos Cerrados" vs. "Cerrado con Pendientes"
+* *Definición de "Proyectos Cerrados":* Cuando el enunciado o los directores hablan de "proyectos cerrados", se refieren a que **la fase de ejecución formal de los cuatro proyectos concluyó**.
+* *Distinción de Estados de Aceptación:* El sistema no confunde la conclusión de la ejecución con una aceptación sin observaciones. Clasifica formalmente los proyectos en:
+  - **Cerrado aceptado (3 proyectos):** `PC-2025-014` (Horizonte Andino), `PC-2025-027` (Plásticos del Pacífico) y `PC-2025-033` (Clínica Santa Lucía), los cuales obtuvieron firma formal de conformidad sin pendientes.
+  - **Cerrado con pendientes (1 proyecto):** `PC-2026-006` (Supermercados La Canasta), cuya ejecución concluyó pero trasladó a Fase 2 la integración EDI con 3 proveedores debido al upgrade de versión del ERP (nov-2026) y la madurez técnica de un proveedor.
+
+### 4. Transparencia en la Fuente Fiable y Reporte de Matices
+El chatbot no oculta las discrepancias documentales ni las aplana de forma artificial. En su rol de Consultor Senior:
+1. Declara primero la **cifra oficial fiable** extraída de la tabla de cierre de la base de datos relacional.
+2. Explica el **matiz o detalle de la discrepancia** (medición preliminar transitoria, anexo de causas o factor no atribuible).
+3. Cita la **fuente documental exacta** con su nombre de archivo íntegro entre corchetes `[Fuente: ...]`.
+
+---
+
+## 5. 🚀 Guía de Instalación y Ejecución
 
 ### Prerrequisitos
 - Python 3.10 o superior (verificado en Python 3.14).
@@ -148,7 +180,7 @@ cp .env.example .env
 
 ---
 
-## 5. 💻 Modos de Uso
+## 6. 💻 Modos de Uso
 
 ### A. Interfaz Gráfica Web (Streamlit)
 Inicia la aplicación web interactiva con:
@@ -156,7 +188,7 @@ Inicia la aplicación web interactiva con:
 streamlit run app.py
 ```
 **Características de la UI:**
-- **Sidebar & Configuración:** Gestión de API Key en SQLite, selector de modelos (`gemini-2.5-flash`, `gemini-1.5-pro`), selector de temperatura y botón de re-procesamiento.
+- **Sidebar & Configuración:** Gestión de API Key en SQLite, selector de modelos (`gemini-3.8-flash`, `gemini-3.5-flash`, `gemini-1.5-pro`), selector de temperatura y botón de re-procesamiento.
 - **Pestaña Chatbot Consultor:** Chat conversacional con expander de trazabilidad de herramientas utilizadas (`[TOOL CALL]`) y resaltado visual de citas documentales (`[Fuente: ...]`).
 - **Pestaña Explorador BD:** Tablas interactivas de Proyectos, KPIs y Lecciones con filtros dinámicos y visor de fichas JSON con botón de descarga.
 - **Pestaña Configuraciones:** Visualización de parámetros persistidos en SQLite.
@@ -186,7 +218,7 @@ Consultor > salir
 
 ---
 
-## 6. 🧪 Suite de Pruebas Automatizadas (Pytest)
+## 7. 🧪 Suite de Pruebas Automatizadas (Pytest)
 
 Ejecuta la batería de pruebas para certificar la integridad de los datos, funcionamiento de herramientas, respuestas del agente y validación anti-alucinación:
 
@@ -205,7 +237,7 @@ python -m pytest tests/test_agent.py -v
 
 ---
 
-## 7. ⚠️ Supuestos y Limitaciones Conocidas
+## 8. ⚠️ Supuestos y Limitaciones Conocidas
 
 1. **Extracción de Texto:** El lector universal asume documentos digitales con capa de texto legible (PDFs nativos generados por procesadores de texto y archivos DOCX). En caso de informes escaneados como imagen plana, se requeriría incorporar un motor OCR (como Tesseract o Google Cloud Vision).
 2. **Concurrencia de Escritura SQLite:** SQLite opera de manera óptima en modo lectura multi-hilo; sin embargo, las escrituras masivas concurrentes bloquean la base de datos brevemente. En un entorno de producción masivo (>1.000 usuarios concurrentes escribiendo), se recomienda habilitar el modo WAL (`PRAGMA journal_mode=WAL;`) o migrar la capa de persistencia a PostgreSQL.
@@ -213,7 +245,7 @@ python -m pytest tests/test_agent.py -v
 
 ---
 
-## 8. 💰 Modelo de Estimación de Costos (50 Consultores)
+## 9. 💰 Modelo de Estimación de Costos (50 Consultores)
 
 ### Escenario de Uso
 - **Equipo de consultoría:** 50 consultores activos.
