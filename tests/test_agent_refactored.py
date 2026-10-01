@@ -80,7 +80,7 @@ def test_fallback_engine_anti_alucinacion_cliente_desconocido():
     fallback = FallbackEngine()
     res = fallback.responder("¿Qué proyectos se hicieron para Banco Pichincha?")
     assert res["respuesta"].strip() == (
-        "La información consultada no se encuentra disponible en los informes de proyectos registrados."
+        "No existe esta información disponible. La información consultada no se encuentra disponible en los informes de proyectos registrados."
     )
 
 

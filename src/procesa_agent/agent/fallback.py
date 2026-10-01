@@ -462,7 +462,7 @@ class FallbackEngine:
         # a) Variables internas no documentadas
         if any(v in msg_norm for v in VARIABLES_NO_DOCUMENTADAS) and not kpis_encontrados:
             return {
-                "respuesta": "El dato consultado no se encuentra documentado en los informes oficiales de Procesa Consultores.",
+                "respuesta": "No existe esta información disponible. El dato consultado no se encuentra documentado en los informes oficiales de Procesa Consultores.",
                 "trazabilidad": trazabilidad,
                 "modelo": "fallback-local",
             }
@@ -487,7 +487,7 @@ class FallbackEngine:
             and not fts_resultados
         ):
             return {
-                "respuesta": "La información consultada no se encuentra disponible en los informes de proyectos registrados.",
+                "respuesta": "No existe esta información disponible. La información consultada no se encuentra disponible en los informes de proyectos registrados.",
                 "trazabilidad": trazabilidad,
                 "modelo": "fallback-local",
             }
@@ -521,29 +521,32 @@ class FallbackEngine:
             for w in ["gerente", "gerentes", "lider", "lideraron", "quienes", "asignados"]
         )
 
-        for p in proyectos_encontrados:
-            detalles = []
-            if pide_duracion:
-                detalles.append(f"duración: **{p.get('duracion_semanas', 'N/A')} semanas**")
-            if pide_gerente:
-                detalles.append(f"gerente asignado: **{p['gerente_proyecto']}**")
-
-            str_detalles = (
-                f" ({', '.join(detalles)})"
-                if detalles
-                else f". Gerente de Proyecto: {p['gerente_proyecto']}"
-            )
+        if len(proyectos_encontrados) > 2 and not (pide_duracion or pide_gerente):
             lineas_resumen.append(
-                f"Para el proyecto **{p['codigo_proyecto']}** (*{p['cliente']}*), el estado registrado es `{p['estado']}`{str_detalles}."
+                f"Procesa Consultores mantiene documentados **{len(proyectos_encontrados)} proyectos oficiales** en su portafolio. A continuación se presentan en detalle:"
             )
-            if p.get("alcance_excluido") and any(
-                w in msg_norm for w in ["emergencia", "quirofano", "excluido", "alcance"]
-            ):
+            for p in proyectos_encontrados:
+                archivos_fuente.add(p["archivo_origen"])
+        else:
+            for p in proyectos_encontrados:
+                detalles = []
+                if pide_duracion:
+                    detalles.append(f"duración: **{p.get('duracion_semanas', 'N/A')} semanas**")
+                if pide_gerente:
+                    detalles.append(f"gerente: **{p['gerente_proyecto']}**")
+
+                str_detalles = f" ({', '.join(detalles)})" if detalles else ""
                 lineas_resumen.append(
-                    f"**Delimitación de Alcance:** El área consultada quedó formalmente excluida del alcance. {p['alcance_excluido']}. "
-                    f"Por lo tanto, no existen variaciones de tiempos ni mediciones para dichas áreas."
+                    f"**{p['codigo_proyecto']}** (*{p['cliente']}*): estado `{p['estado']}`{str_detalles}."
                 )
-            archivos_fuente.add(p["archivo_origen"])
+                if p.get("alcance_excluido") and any(
+                    w in msg_norm for w in ["emergencia", "quirofano", "excluido", "alcance"]
+                ):
+                    lineas_resumen.append(
+                        f"**Delimitación de Alcance:** El área consultada quedó formalmente excluida del alcance. {p['alcance_excluido']}. "
+                        f"Por lo tanto, no existen variaciones de tiempos ni mediciones para dichas áreas."
+                    )
+                archivos_fuente.add(p["archivo_origen"])
 
         # Si hay KPIs, resaltar aquellos directamente vinculados con la consulta
         if kpis_encontrados:

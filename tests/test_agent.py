@@ -120,7 +120,7 @@ def test_validacion_anti_alucinacion_cliente_inexistente():
     respuesta = agente.responder(
         "¿Qué proyectos o consultorías se ejecutaron para Banco Pichincha?"
     )
-    texto_esperado = "La información consultada no se encuentra disponible en los informes de proyectos registrados."
+    texto_esperado = "No existe esta información disponible. La información consultada no se encuentra disponible en los informes de proyectos registrados."
     assert respuesta["respuesta"].strip() == texto_esperado
 
 
