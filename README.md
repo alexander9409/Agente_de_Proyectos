@@ -249,11 +249,92 @@ Diseño corporativo estilo SaaS, con visualización ejecutiva y sin textos trunc
 streamlit run app.py
 ```
 
+Al ejecutarlo, Streamlit abre automáticamente el navegador en **http://localhost:8501**.
+
 | Sección | Qué ofrece |
 | :--- | :--- |
 | **Chatbot consultor** | Diálogo en lenguaje natural con citas documentales destacadas y trazabilidad completa y desplegable de las herramientas usadas. |
 | **Explorador de datos** | Tablas filtrables de proyectos y lecciones aprendidas, y tarjetas de KPIs con deltas de color. |
 | **Auditoría y parámetros** | Vista de la tabla `configuraciones` con contraseñas enmascaradas y panel de diagnóstico MCP. |
+
+#### 🚀 Despliegue de la aplicación web
+
+**1. Despliegue local (desarrollo y demos)**
+
+Antes de levantar la web, verifica que:
+
+- El entorno virtual está **activado** (ver [Paso 1](#paso-1--clonar-el-repositorio-y-crear-el-entorno-virtual)).
+- Existe la base de datos `data/database.sqlite`. Si no, ejecuta primero `python main.py ingestar`.
+- Tienes una `GEMINI_API_KEY` en `.env` o la ingresarás desde la propia interfaz. Sin ella, la app funciona solo en modo determinista (*fallback*).
+
+```bash
+# Con el entorno virtual activado, desde la raíz del proyecto
+streamlit run app.py
+```
+
+**2. Despliegue en red local o servidor propio**
+
+Para que otros equipos de la red accedan a la aplicación, define el puerto y la dirección de escucha:
+
+```bash
+streamlit run app.py --server.port 8501 --server.address 0.0.0.0
+```
+
+| Opción | Descripción |
+| :--- | :--- |
+| `--server.port` | Puerto de la aplicación (por defecto `8501`). |
+| `--server.address 0.0.0.0` | Escucha en todas las interfaces; los usuarios acceden con `http://<IP_DEL_SERVIDOR>:8501`. |
+| `--server.headless true` | No abre el navegador. Recomendado en servidores sin entorno gráfico. |
+
+Para que siga activa tras cerrar la sesión, ejecútala como servicio (por ejemplo, `systemd` en Linux) o detrás de un proxy inverso (Nginx, Caddy) con HTTPS.
+
+> ⚠️ **Seguridad:** la interfaz no incluye autenticación de usuarios. Si la expones fuera de tu red interna, protégela con un proxy inverso con login, VPN o reglas de firewall.
+
+**3. Despliegue en Streamlit Community Cloud**
+
+1. Sube el repositorio a GitHub, incluyendo `app.py` y las dependencias (`pyproject.toml` o `requirements.txt`).
+2. Entra en [share.streamlit.io](https://share.streamlit.io), pulsa **New app** y selecciona el repositorio, la rama y el archivo principal `app.py`.
+3. En **Advanced settings → Secrets**, configura tu clave:
+
+   ```toml
+   GEMINI_API_KEY = "AIzaSy...tu_clave_aqui"
+   MODEL_NAME = "gemini-2.5-flash"
+   ```
+
+4. Pulsa **Deploy**.
+
+> ⚠️ **Importante:** en la nube, el sistema de archivos es efímero. Incluye en el repositorio el archivo `data/database.sqlite` ya generado, o la base de datos se reiniciará en cada redeploy. Nunca subas tu `.env` ni tu API Key al repositorio.
+
+**4. Despliegue con Docker** *(ejemplo)*
+
+El repositorio no incluye un `Dockerfile`; este es un punto de partida:
+
+```dockerfile
+FROM python:3.12-slim
+
+WORKDIR /app
+COPY . .
+RUN pip install --no-cache-dir .
+
+EXPOSE 8501
+CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0", "--server.headless=true"]
+```
+
+```bash
+docker build -t procesa-agente .
+docker run -p 8501:8501 --env-file .env -v "$(pwd)/data:/app/data" procesa-agente
+```
+
+El volumen `-v` conserva `data/database.sqlite` fuera del contenedor.
+
+**Problemas frecuentes**
+
+| Síntoma | Causa y solución |
+| :--- | :--- |
+| `streamlit: command not found` | El entorno virtual no está activado o faltan dependencias. Activa el `venv` y ejecuta `pip install -e ".[dev]"`. |
+| `Port 8501 is already in use` | Otro proceso usa el puerto. Usa `--server.port 8502`. |
+| La web carga pero no responde con datos | Falta la base de datos. Ejecuta `python main.py ingestar`. |
+| No accedo desde otro equipo | Falta `--server.address 0.0.0.0` o el firewall bloquea el puerto. |
 
 ### B. ⌨️ Interfaz de línea de comandos (CLI)
 
