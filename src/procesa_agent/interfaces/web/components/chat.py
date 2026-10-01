@@ -34,12 +34,17 @@ def tabla_markdown_a_dataframe(texto_md: str) -> Optional[pd.DataFrame]:
     return None
 
 
-def renderizar_trazabilidad(trazabilidad: List[Dict[str, Any]]) -> None:
+def renderizar_trazabilidad(
+    trazabilidad: List[Dict[str, Any]], expandido: bool = False
+) -> None:
     """Renderiza la trazabilidad de herramientas utilizadas por el agente sin textos truncados."""
     if not trazabilidad:
         return
 
-    with st.expander("🛠️ Ver trazabilidad y datos de herramientas utilizadas", expanded=False):
+    with st.expander(
+        f"🛠️ Ver trazabilidad analítica ({len(trazabilidad)} herramienta(s) ejecutada(s))",
+        expanded=expandido,
+    ):
         for idx, t in enumerate(trazabilidad, start=1):
             herramienta = t.get("herramienta", "desconocida")
             argumentos = t.get("argumentos", {})
@@ -89,7 +94,8 @@ def renderizar_trazabilidad(trazabilidad: List[Dict[str, Any]]) -> None:
 
 def renderizar_historial_chat(mensajes: List[Dict[str, Any]]) -> None:
     """Renderiza la lista completa de mensajes con avatares corporativos y formato rico."""
-    for mensaje in mensajes:
+    total = len(mensajes)
+    for idx, mensaje in enumerate(mensajes):
         rol = mensaje.get("rol", "user")
         avatar = "👤" if rol == "user" else "💼"
 
@@ -98,6 +104,7 @@ def renderizar_historial_chat(mensajes: List[Dict[str, Any]]) -> None:
                 contenido = mensaje.get("contenido", "")
                 st.markdown(resaltar_fuentes(contenido), unsafe_allow_html=True)
                 trazabilidad = mensaje.get("trazabilidad", [])
-                renderizar_trazabilidad(trazabilidad)
+                es_ultimo = idx == total - 1
+                renderizar_trazabilidad(trazabilidad, expandido=es_ultimo)
             else:
                 st.markdown(mensaje.get("contenido", ""))

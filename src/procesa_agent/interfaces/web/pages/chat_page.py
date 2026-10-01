@@ -59,7 +59,7 @@ def render_chat_page() -> None:
                     traza = respuesta_dict.get("trazabilidad", [])
 
                     st.markdown(resaltar_fuentes(texto_resp), unsafe_allow_html=True)
-                    renderizar_trazabilidad(traza)
+                    renderizar_trazabilidad(traza, expandido=True)
 
         # Persistir respuesta del asistente en el historial
         st.session_state.mensajes.append(

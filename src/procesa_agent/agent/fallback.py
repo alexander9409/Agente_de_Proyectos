@@ -416,19 +416,36 @@ class FallbackEngine:
             texto_fts, datos_fts = buscar_texto_detallado(terminos_fts, db_path=self.db_path)
             if datos_fts:
                 fts_resultados = datos_fts
-                trazabilidad.append(
-                    {
-                        "herramienta": "buscar_texto",
-                        "argumentos": {"terminos_busqueda": terminos_fts},
-                        "resultado": texto_fts,
-                        "datos": datos_fts,
-                    }
-                )
+            trazabilidad.append(
+                {
+                    "herramienta": "buscar_texto",
+                    "argumentos": {"terminos_busqueda": terminos_fts},
+                    "resultado": texto_fts if datos_fts else f"Búsqueda FTS5 en informes de cierre con términos: '{terminos_fts}'.",
+                    "datos": datos_fts or [],
+                }
+            )
 
-        # Registrar trazabilidad de SQL si se ejecutaron consultas
-        if kpis_encontrados or proyectos_encontrados:
+        # Registrar trazabilidad de consultas SQL ejecutadas contra SQLite
+        if proyectos_encontrados:
+            query_proy = (
+                f"SELECT codigo_proyecto, cliente, sector, duracion_semanas, gerente_proyecto, estado, archivo_origen "
+                f"FROM proyectos WHERE codigo_proyecto IN ({', '.join('?' for _ in codigos_relevantes)});"
+                if codigos_relevantes
+                else "SELECT codigo_proyecto, cliente, sector, duracion_semanas, gerente_proyecto, estado, archivo_origen FROM proyectos;"
+            )
+            trazabilidad.append(
+                {
+                    "herramienta": "consultar_sql",
+                    "argumentos": {"query": query_proy, "params": list(codigos_relevantes)},
+                    "resultado": f"Total {len(proyectos_encontrados)} proyecto(s) consultados en SQLite.",
+                    "datos": proyectos_encontrados,
+                }
+            )
+
+        if kpis_encontrados:
             query_trace = (
-                f"SELECT * FROM kpis WHERE codigo_proyecto IN ({', '.join('?' for _ in codigos_relevantes)});"
+                f"SELECT k.codigo_proyecto, k.indicador, k.linea_base, k.meta, k.resultado, k.variacion, k.cumplimiento "
+                f"FROM kpis k WHERE k.codigo_proyecto IN ({', '.join('?' for _ in codigos_relevantes)});"
                 if codigos_relevantes
                 else "SELECT * FROM kpis;"
             )
@@ -436,7 +453,7 @@ class FallbackEngine:
                 {
                     "herramienta": "consultar_sql",
                     "argumentos": {"query": query_trace, "params": list(codigos_relevantes)},
-                    "resultado": f"Total {len(kpis_encontrados)} kpi(s) encontrados.",
+                    "resultado": f"Total {len(kpis_encontrados)} kpi(s) encontrados en SQLite.",
                     "datos": kpis_encontrados,
                 }
             )
